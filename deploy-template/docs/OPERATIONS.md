@@ -14,12 +14,17 @@ All routine operations go through the TUI (or the underlying scripts headlessly)
 | `./brain revoke <name>` | Remove an agent | `scripts/revoke-agent.sh` |
 | `./brain status` | Stack + vault dashboard | `scripts/healthcheck.sh` |
 | `./brain verify` | Acceptance suite vs live stack | `scripts/verify.sh` |
+| `./brain update` | Pull latest release + restart + verify | `scripts/update.sh` |
 
 ## Upgrades
 
-1. Edit the pinned `ghcr.io/kaeldominion/brain-mcp:<tag>` in `docker-compose.yml`.
-2. `source scripts/lib/compose.sh && compose pull && compose up -d` (the helper applies the right Traefik overlay for `TRAEFIK_MODE`).
-3. `./brain verify`.
+```bash
+./brain update
+```
+
+One command: fetches the latest deploy template from GitHub, refreshes scripts/docs/compose (never touching your `.env`, `brain.config.yaml`, venv, or vault), adopts the template's pinned server image, pulls it, restarts, and re-runs the acceptance suite.
+
+Manual equivalent (or to pin a specific version): edit the `ghcr.io/kaeldominion/brain-mcp:<tag>` pin in `docker-compose.yml`, then `source scripts/lib/compose.sh && compose pull && compose up -d && ./brain verify`. Rollback = re-pin the previous tag the same way.
 
 Rollback = re-pin the previous tag and repeat. Vault and config are mounts; upgrades never touch them.
 

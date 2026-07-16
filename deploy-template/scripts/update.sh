@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# One-command update: fetch the latest deploy template from GitHub, refresh
+# everything EXCEPT your local state (.env, brain.config.yaml, .venv, vault),
+# adopt the template's pinned server image, restart, verify.
+#
+# usage: update.sh [repo-url]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+REPO_URL="${1:-https://github.com/kaeldominion/brain-mcp}"
+
+echo "==> Fetching latest template from $REPO_URL"
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+git clone -q --depth 1 "$REPO_URL" "$tmp/repo"
+SRC="$tmp/repo/deploy-template"
+[[ -d "$SRC" ]] || { echo "error: deploy-template/ not found in $REPO_URL" >&2; exit 1; }
+
+OLD_PIN=$(grep -Eo 'brain-mcp:[0-9A-Za-z.-]+' docker-compose.yml | head -1 || true)
+NEW_PIN=$(grep -Eo 'brain-mcp:[0-9A-Za-z.-]+' "$SRC/docker-compose.yml" | head -1 || true)
+
+echo "==> Refreshing template files (your .env / brain.config.yaml / vault are untouched)"
+for item in brain scripts docs skills traefik docker-compose.yml \
+            compose.bundled-traefik.yml compose.external-traefik.yml \
+            .env.example README.md .gitignore; do
+  if [[ -e "$SRC/$item" ]]; then
+    rm -rf "./${item:?}"
+    cp -R "$SRC/$item" "./$item"
+  fi
+done
+chmod +x brain scripts/*.sh 2>/dev/null || true
+
+if [[ -n "$NEW_PIN" && "$NEW_PIN" != "$OLD_PIN" ]]; then
+  echo "==> Server version: ${OLD_PIN:-none} -> $NEW_PIN"
+else
+  echo "==> Server version unchanged (${OLD_PIN:-unknown})"
+fi
+
+if [[ -f .env ]]; then
+  source scripts/lib/compose.sh
+  echo "==> Pulling image + restarting"
+  compose pull -q
+  compose up -d
+  echo "==> Verifying"
+  scripts/verify.sh
+else
+  echo "==> No .env yet (not installed) — template refreshed only. Run ./brain setup."
+fi
+
+echo ""
+echo "update complete."

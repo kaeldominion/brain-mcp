@@ -372,6 +372,10 @@ def cmd_verify(_):
     run(["scripts/verify.sh"], check=False)
 
 
+def cmd_update(args):
+    run(["scripts/update.sh", *args[:1]])
+
+
 COMMANDS = {
     "setup": cmd_setup,
     "add-agent": cmd_add_agent,
@@ -379,6 +383,7 @@ COMMANDS = {
     "revoke": cmd_revoke,
     "status": cmd_status,
     "verify": cmd_verify,
+    "update": cmd_update,
 }
 
 
@@ -392,7 +397,8 @@ def main():
             "  rotate      rotate an agent's token\n"
             "  revoke      remove an agent\n"
             "  status      stack + vault dashboard\n"
-            "  verify      run the acceptance suite",
+            "  verify      run the acceptance suite\n"
+            "  update      pull the latest release + restart + verify",
             title="brain",
         )
         footer()

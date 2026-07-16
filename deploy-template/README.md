@@ -45,4 +45,15 @@ Prints **one copyable block** — MCP URL + bearer token (shown once) + the `com
 | `./brain` | interactive admin console (run with no args — arrow-key menu for everything); direct subcommands: setup / add-agent / rotate / revoke / backup / status / verify / update |
 | `docs/` | OPERATIONS · SECURITY · RECOVERY · ADD-REMOTE-AGENT |
 
+## Multiple brains on one server
+
+Each brain is one folder with its own containers, vault, tokens, and backup repo — fully isolated. They share only the reverse proxy (one Traefik owns 80/443; every brain registers its own hostname under its own deploy prefix):
+
+```bash
+cp -r ~/brain-mcp/deploy-template ~/2nd-brain-companyx
+cd ~/2nd-brain-companyx && ./brain setup     # different prefix + domain + backup repo
+```
+
+Run as many as the box can hold (~100MB RAM each). Manage each from its own folder: `cd <folder> && ./brain`.
+
 Day-2 operations live in `docs/OPERATIONS.md`.

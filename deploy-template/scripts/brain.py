@@ -188,15 +188,16 @@ def detect_traefik():
         except (ValueError, IndexError):
             return {"mode": "external", "id": cid, "name": cname, "network": None,
                     "entrypoint": None, "resolver": None}
-        nets = [n for n in info.get("NetworkSettings", {}).get("Networks", {})
-                if n not in ("bridge", "host", "none")]
+        all_nets = info.get("NetworkSettings", {}).get("Networks", {})
+        nets = [n for n in all_nets if n not in ("bridge", "host", "none")]
+        host_mode = "host" in all_nets or info.get("HostConfig", {}).get("NetworkMode") == "host"
         argv = " ".join((info.get("Args") or []) + (info.get("Config", {}).get("Cmd") or []))
         m = re.search(r"--entry[pP]oints?\.([\w-]+)\.address=:?443\b", argv)
         entrypoint = m.group(1) if m else None
         m = re.search(r"--certificates[rR]esolvers?\.([\w-]+)\.", argv)
         resolver = m.group(1) if m else None
         return {"mode": "external", "id": cid, "name": cname,
-                "network": nets[0] if nets else None,
+                "network": nets[0] if nets else None, "host_mode": host_mode,
                 "entrypoint": entrypoint, "resolver": resolver}
     return {"mode": "bundled"}
 
@@ -268,6 +269,13 @@ def cmd_setup(_):
         network = det["network"]
         if network:
             say(f"  ✓ Traefik network: {network}", style="green")
+        elif det.get("host_mode"):
+            # host-networked Traefik reaches container IPs directly; it can't
+            # (and doesn't need to) join another network — just give brain-mcp one
+            subprocess.run(["docker", "network", "create", DEDICATED_NET],
+                           capture_output=True, text=True)
+            network = DEDICATED_NET
+            say(f"  ✓ Traefik uses host networking — brain-mcp gets its own '{DEDICATED_NET}' network, reachable directly", style="green")
         else:
             say(f"  ▲ Traefik has no attachable network — creating '{DEDICATED_NET}' and connecting Traefik to it", style="yellow")
             network = attach_network_to_traefik(det["id"])

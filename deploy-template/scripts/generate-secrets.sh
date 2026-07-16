@@ -2,7 +2,7 @@
 # Generate a bearer token for one client; store ONLY its sha256 hash in .env.
 # The plaintext token is printed once — paste it into the agent's config.
 #
-# usage: generate-secrets.sh <client-name> [--deploy nnova] [--env-file .env] [--quiet-token-only]
+# usage: generate-secrets.sh <client-name> [--deploy acme] [--env-file .env] [--quiet-token-only]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=".venv/bin/python"; [[ -x "$PY" ]] || PY="python3"

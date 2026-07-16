@@ -10,13 +10,13 @@ def _emit(msg, *args):
 
 
 def test_bearer_header_redacted():
-    out = _emit("request with Authorization: Bearer nnova_mgmt_deadbeefdeadbeefdeadbeef")
+    out = _emit("request with Authorization: Bearer acme_mgmt_deadbeefdeadbeefdeadbeef")
     assert "deadbeef" not in out
     assert "[REDACTED]" in out
 
 
 def test_token_shaped_string_redacted():
-    out = _emit("client sent token nnova_mgmt_0123456789abcdef0123456789abcdef in body")
+    out = _emit("client sent token acme_mgmt_0123456789abcdef0123456789abcdef in body")
     assert "0123456789abcdef" not in out
 
 
@@ -26,5 +26,5 @@ def test_normal_messages_untouched():
 
 
 def test_args_are_flattened_safely():
-    out = _emit("header=%s", "Bearer nnova_ops_ffffffffffffffffffffffffffffffff")
+    out = _emit("header=%s", "Bearer acme_ops_ffffffffffffffffffffffffffffffff")
     assert "ffffffff" not in out

@@ -18,6 +18,6 @@
 - `.env` is chmod 600, gitignored, never printed. Prefer Docker secrets when the platform allows.
 - No plaintext token ever lands in a repo, image, log, or the vault.
 - Agents are external MCP clients — this stack never holds their sessions, credentials, or memory. Only company knowledge is shared, via MCP.
-- No container mounts `/var/run/docker.sock` except Traefik (read-only, provider API only).
+- `brain-mcp` and `backup` never mount `/var/run/docker.sock`. The only socket mount in the project is the **optional bundled-Traefik overlay** (read-only, required by Traefik's Docker provider for label discovery); external-traefik mode avoids any socket mount in this stack entirely.
 - Never put API keys, bot tokens, passwords, banking details, or personal notes in the vault.
 - Images are pinned by version; upgrades are deliberate tag bumps.

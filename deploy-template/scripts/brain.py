@@ -20,12 +20,66 @@ try:
     from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
+    from rich.text import Text
 
     console = Console()
     RICH = console.is_terminal
 except ImportError:  # pre-bootstrap or dumb terminal: plain text
     console = None
     RICH = False
+
+# Sentient Labs signature gradient (teal → cyan → violet → purple).
+# Identity only — success/warn/error stay conventional green/amber/red.
+# Rich downgrades truecolor to 256-color automatically; RICH=False → plain text.
+GRADIENT = ((0x2D, 0xD4, 0xBF), (0x22, 0xD3, 0xEE), (0xA7, 0x8B, 0xFA), (0xC0, 0x84, 0xFC))
+TEAL = "#2DD4BF"
+VIOLET = "#A78BFA"
+
+
+def gradient_text(s, bold=False):
+    """Left-to-right character-level ramp across the Sentient gradient."""
+    if not RICH:
+        return s
+    text = Text()
+    span = max(len(s) - 1, 1)
+    for i, ch in enumerate(s):
+        pos = (i / span) * (len(GRADIENT) - 1)
+        j = min(int(pos), len(GRADIENT) - 2)
+        f = pos - j
+        r, g, b = (round(GRADIENT[j][k] + (GRADIENT[j + 1][k] - GRADIENT[j][k]) * f) for k in range(3))
+        style = f"rgb({r},{g},{b})"
+        text.append(ch, style=f"bold {style}" if bold else style)
+    return text
+
+
+def grule(width=None):
+    """Section divider: a gradient-ramped horizontal rule."""
+    w = width or (console.width if RICH else 72)
+    line = "─" * max(int(w), 10)
+    if RICH:
+        console.print(gradient_text(line))
+    else:
+        print(line)
+
+
+def wordmark():
+    grule()
+    if RICH:
+        console.print(gradient_text("███  2ND BRAIN MCP  ███", bold=True))
+        console.print("company memory for AI agents", style="dim")
+        console.print("— by Sentient Labs · sentientlabs.co", style="dim")
+    else:
+        print("███  2ND BRAIN MCP  ███")
+        print("company memory for AI agents")
+        print("— by Sentient Labs · sentientlabs.co")
+    grule()
+
+
+def footer():
+    if RICH:
+        console.print("2nd Brain MCP · by Sentient Labs", style="dim")
+    else:
+        print("2nd Brain MCP · by Sentient Labs")
 
 try:
     import questionary
@@ -43,9 +97,10 @@ def say(text, style=""):
         print(re.sub(r"\[/?[a-z ]+\]", "", str(text)))
 
 
-def panel(text, title=""):
+def panel(text, title="", border=None):
     if RICH:
-        console.print(Panel(text, title=title, border_style="cyan"))
+        console.print(Panel(text, title=f"[bold white]{title}[/bold white]" if title else None,
+                            border_style=border or "cyan"))
     else:
         print(f"\n=== {title} ===\n{text}\n")
 
@@ -91,12 +146,16 @@ def run(cmd, capture=False, env=None, check=True):
 
 
 def show_block_once(name, block):
-    """Display an agent onboarding block (URL + token + skill) exactly once."""
+    """Display an agent onboarding block (URL + token + skill) exactly once —
+    the one moment of drama: gradient-framed reveal."""
+    grule()
     panel(
-        block + "\n\nPaste this into the agent's deployment config NOW — "
-        "the token will not be shown again.",
+        block + "\n\nPaste this into the agent's deployment config now. "
+        "Shown once.",
         title=f"onboarding block: {name}",
+        border=VIOLET,
     )
+    grule()
     if INTERACTIVE:
         input("Press Enter to clear it from the screen... ")
         if RICH:
@@ -145,12 +204,13 @@ def clients():
 
 
 def cmd_setup(_):
+    wordmark()
     panel(
         "This wizard installs the Company 2nd Brain:\n"
         "preflight → traefik detection → company details → tokens → vault seed → start → verify.\n\n"
         "AI agents are NOT part of this stack — onboard each one afterwards with\n"
         "./brain add-agent (prints a copyable URL + token + skill block).",
-        title="brain setup — Company 2nd Brain by Sentient Labs",
+        title="setup",
     )
     checks = [
         ("Docker", ["docker", "--version"]),
@@ -204,23 +264,32 @@ def cmd_setup(_):
         env_file.chmod(0o600)
         say("  ✓ .env written (fill in BACKUP_REMOTE / BACKUP_SSH_KEY before relying on backups)")
 
-    say("\nRunning bootstrap (seed vault, backup repo, secrets, start, verify)…")
+    grule()
+    say("Running bootstrap (seed vault, backup repo, secrets, start, verify)…")
     run(["scripts/bootstrap.sh"])
+    grule()
 
-    say("\nDefault agents: management (admin), operations, staff. Onboarding blocks:")
+    say("Default agents: management (admin), operations, staff. Onboarding blocks:")
     for name, _role, _env in clients():
         if confirm(f"Print the onboarding block for '{name}' now (rotates its token)?"):
             cmd_rotate_silent(name)
 
     domain = _env_value("COMPANY_DOMAIN")
+    grule()
+    if RICH:
+        console.print(gradient_text("✓  INSTALL COMPLETE", bold=True))
+    else:
+        print("INSTALL COMPLETE")
     panel(
         "Endpoint for every agent (local or remote — all external MCP clients):\n"
         f"  https://brain-mcp.{domain}/mcp\n\n"
         "Onboard agents any time with: ./brain add-agent\n"
         "Next: connect the admin agent and say hello — it will offer to run the\n"
         "onboarding interview (_System/Onboarding Protocol.md).",
-        title="install complete — Company 2nd Brain by Sentient Labs",
+        title="install complete",
+        border=TEAL,
     )
+    grule()
 
 
 def cmd_rotate_silent(name):
@@ -315,6 +384,7 @@ COMMANDS = {
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
+        wordmark()
         panel(
             "usage: ./brain <command>\n\n"
             "  setup       first-install wizard (traefik-aware)\n"
@@ -323,10 +393,12 @@ def main():
             "  revoke      remove an agent\n"
             "  status      stack + vault dashboard\n"
             "  verify      run the acceptance suite",
-            title="brain — Company 2nd Brain by Sentient Labs",
+            title="brain",
         )
+        footer()
         sys.exit(0 if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help") else 1)
     COMMANDS[sys.argv[1]](sys.argv[2:])
+    footer()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,19 @@
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.pyc
+
+# defense-in-depth: the vault and anything rendered/generated must never
+# land in a deploy repo (vault history lives in its own private backup repo)
+vault/
+*-2nd-brain/
+audit/
+*.rendered.yaml
+*.rendered.yml
+brain.config.local.yaml
+acme.json
+id_ed25519*
+*.key
+*.pem

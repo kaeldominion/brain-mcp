@@ -52,16 +52,16 @@ def test_malformed_hash_env_refuses_boot(config):
 
 
 def test_generate_token_roundtrip():
-    token = generate_token("nnova", "mgmt")
-    assert token.startswith("nnova_mgmt_")
-    assert len(token) >= len("nnova_mgmt_") + 32
+    token = generate_token("acme", "mgmt")
+    assert token.startswith("acme_mgmt_")
+    assert len(token) >= len("acme_mgmt_") + 32
     assert len(hash_token(token)) == 64
 
 
 def test_token_prefix_reveals_no_secret():
-    token = generate_token("nnova", "mgmt")
+    token = generate_token("acme", "mgmt")
     prefix = token_prefix(token)
-    assert prefix.startswith("nnova_mgmt_")
+    assert prefix.startswith("acme_mgmt_")
     # only a short identifying prefix, never the random part
-    assert len(prefix) <= len("nnova_mgmt_") + 4
+    assert len(prefix) <= len("acme_mgmt_") + 4
     assert token != prefix

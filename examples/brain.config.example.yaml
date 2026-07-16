@@ -1,0 +1,45 @@
+# Company 2nd Brain — server configuration
+# Mounted read-only at /config/brain.config.yaml inside the container.
+#
+# Rules enforced at boot (bad config refuses to start):
+#   - exactly ONE client must hold the 'admin' role
+#   - every client role must exist under roles:
+#   - client names must be unique
+#   - all globs must be valid
+#
+# ACL semantics: deny > write > read, default-deny. A write grant implies
+# read of the same paths. "{client}" interpolates the client's own name.
+# NOTE: do not give a role `deny: ["**"]` — deny beats write, so that role
+# could do nothing. Anything not matched by read/write is already denied.
+
+vault_root: /vault
+audit_dir: /audit
+
+clients:
+  - name: management
+    token_hash_env: MCP_TOKEN_HASH_MANAGEMENT   # sha256 hex of the token; plaintext never stored server-side
+    role: admin
+  - name: operations
+    token_hash_env: MCP_TOKEN_HASH_OPERATIONS
+    role: operations
+  - name: staff
+    token_hash_env: MCP_TOKEN_HASH_STAFF
+    role: staff
+
+roles:
+  admin:
+    read:  ["**"]
+    write: ["**"]
+    deny:  ["_Audit/**", "_System/Access and Contribution Rules.md", ".obsidian/**"]
+  operations:
+    read:  ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "20 People/**", "30 Projects/**", "_System/**"]
+    write: ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "90 Staff Inbox/{client}/**"]
+    deny:  ["_Audit/**", ".obsidian/**"]
+  staff:
+    read:  ["50 Operations/Procedures/**", "40 Properties/**", "_System/**"]
+    write: ["90 Staff Inbox/{client}/**"]
+    deny:  ["_Audit/**", ".obsidian/**"]
+
+limits:
+  requests_per_minute: 60      # per token, enforced in-app (local agents bypass Traefik)
+  max_note_bytes: 1048576

@@ -1,0 +1,10 @@
+.venv
+.git
+.github
+tests
+examples
+__pycache__
+*.pyc
+.pytest_cache
+uv.lock
+.python-version

@@ -42,7 +42,7 @@ Prints **one copyable block** — MCP URL + bearer token (shown once) + the `com
 | `traefik/dynamic/security.yml` | headers, per-IP rate limit, body cap, TLS floor (bundled mode) |
 | `skills/company-brain.md` | the skill text every agent gets in its onboarding block |
 | `scripts/` | `bootstrap` `add-agent` `generate-secrets` `rotate-token` `revoke-agent` `backup-vault` `restore-vault` `healthcheck` `verify` `update` |
-| `./brain` | terminal console wrapping those scripts (setup / add-agent / rotate / revoke / status / verify / update) |
+| `./brain` | interactive admin console (run with no args — arrow-key menu for everything); direct subcommands: setup / add-agent / rotate / revoke / backup / status / verify / update |
 | `docs/` | OPERATIONS · SECURITY · RECOVERY · ADD-REMOTE-AGENT |
 
 Day-2 operations live in `docs/OPERATIONS.md`.

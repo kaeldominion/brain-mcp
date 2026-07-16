@@ -34,7 +34,8 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}
+          # image name is pinned (repo was renamed to 2ndBrainMCP; deploys pull brain-mcp)
+          images: ghcr.io/kaeldominion/brain-mcp
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

@@ -9,7 +9,7 @@ Copy this directory into a **private** `brain-deploy-<client>` repo per install;
 ## Quick start
 
 ```bash
-cp -r deploy-template brain-deploy-acme && cd brain-deploy-acme
+cp -r deploy-template 2nd-brain && cd 2nd-brain
 ./brain setup        # preflight → traefik detection → details → tokens → seed → start → verify
 ```
 

@@ -29,8 +29,8 @@ On the server (needs Docker + Compose v2, python3, openssl):
 
 ```bash
 git clone https://github.com/kaeldominion/brain-mcp
-cp -r brain-mcp/deploy-template my-brain
-cd my-brain
+cp -r brain-mcp/deploy-template 2nd-brain
+cd 2nd-brain
 ./brain setup
 ```
 

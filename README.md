@@ -1,8 +1,10 @@
 # brain-mcp
 
-The Company 2nd Brain MCP server: a Dockerized [FastMCP](https://gofastmcp.com) service that is the **sole controlled writer** to an Obsidian-compatible Markdown vault, letting multiple isolated AI agents (local and remote) share company knowledge safely.
+*Company 2nd Brain, by [Sentient Labs](https://sentientlabs.io) — open source, Apache-2.0*
 
-One generic image, zero client-specific content. Per-client installs are thin `brain-deploy-<client>` repos: compose file + `brain.config.yaml` + seeded vault.
+A Dockerized [FastMCP](https://gofastmcp.com) service that is the **sole controlled writer** to an Obsidian-compatible Markdown vault, letting any number of AI agents (Hermes, Claude, anything MCP-capable — all external clients over HTTPS) share company knowledge safely.
+
+One generic image, zero client-specific content. Per-client installs are thin private `brain-deploy-<client>` repos instantiated from [`deploy-template/`](deploy-template/README.md), which ships the compose stack (Traefik-aware), the `./brain` terminal console, agent onboarding, and docs. Self-host freely; Sentient Labs sells the managed install, updates, weekly review ritual, and agent onboarding.
 
 ## What it enforces
 

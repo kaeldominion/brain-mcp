@@ -1,0 +1,10 @@
+# Overlay: existing Traefik — Hostinger VPSes ship one on 80/443 already.
+# brain-mcp attaches to that Traefik's Docker network and is routed purely
+# via the labels in docker-compose.yml. Set in .env:
+#   TRAEFIK_MODE=external
+#   TRAEFIK_NETWORK=<the existing Traefik's network>      (./brain setup detects it)
+#   TRAEFIK_ENTRYPOINT / TRAEFIK_CERTRESOLVER to match that Traefik's names
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:?TRAEFIK_NETWORK must name the existing Traefik network}

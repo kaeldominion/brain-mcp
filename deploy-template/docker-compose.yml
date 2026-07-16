@@ -1,0 +1,58 @@
+# Company 2nd Brain — base stack: brain-mcp + backup + vault volume.
+# Hermes/AI agents are NOT part of this stack — every agent everywhere is an
+# external MCP client on https://brain-mcp.<domain>/mcp (see ./brain add-agent).
+#
+# Traefik is an overlay — never run this file alone:
+#   bundled : docker compose -f docker-compose.yml -f compose.bundled-traefik.yml ...
+#   external: docker compose -f docker-compose.yml -f compose.external-traefik.yml ...
+# scripts/lib/compose.sh picks the overlay from TRAEFIK_MODE in .env;
+# ./brain setup detects an existing Traefik (Hostinger ships one) and sets it.
+
+services:
+  brain-mcp:
+    image: ghcr.io/kaeldominion/brain-mcp:0.1.0   # upgrades: bump tag, compose pull && up -d
+    restart: unless-stopped
+    expose:
+      - "8000"                                    # expose, never ports: only reachable via Traefik
+    networks: [proxy]
+    volumes:
+      - ${VAULT_DIR:?}:/vault
+      - ${AUDIT_DIR:?}:/audit
+      - ./brain.config.yaml:/config/brain.config.yaml:ro
+    env_file: .env                                # MCP_TOKEN_HASH_* only; hashes, never tokens
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 512M}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-brain-proxy}
+      - traefik.http.routers.brain-mcp.rule=Host(`brain-mcp.${COMPANY_DOMAIN:?}`)
+      - traefik.http.routers.brain-mcp.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.brain-mcp.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.brain-mcp.loadbalancer.server.port=8000
+      - traefik.http.services.brain-mcp.loadbalancer.healthcheck.path=/health
+      - traefik.http.services.brain-mcp.loadbalancer.healthcheck.interval=15s
+
+  backup:
+    image: alpine/git:2.47.2
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/backup/backup-vault.sh", "--loop"]
+    volumes:
+      - ${VAULT_DIR:?}:/vault
+      - ./scripts/backup-vault.sh:/backup/backup-vault.sh:ro
+      - ${BACKUP_SSH_KEY:?}:/root/.ssh/id_ed25519:ro
+    environment:
+      BACKUP_REMOTE: ${BACKUP_REMOTE:?}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-900}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+
+networks:
+  proxy:
+    name: ${TRAEFIK_NETWORK:-brain-proxy}

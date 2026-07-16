@@ -1,0 +1,25 @@
+http:
+  middlewares:
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: no-referrer
+        customResponseHeaders:
+          Server: ""
+    edge-ratelimit:
+      rateLimit:
+        average: 120        # per-IP at the edge; per-token limits live in the server
+        burst: 60
+        period: 1m
+    body-limit:
+      buffering:
+        maxRequestBodyBytes: 2097152   # 2 MiB — notes are capped at 1 MiB anyway
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true

@@ -1,0 +1,36 @@
+# Company 2nd Brain server configuration (default 3-agent lineup)
+# Managed by scripts/add-agent.sh and ./brain; safe to edit by hand.
+# Validation: exactly one admin client, unique names, valid globs; the
+# server refuses to boot otherwise.
+
+vault_root: /vault
+audit_dir: /audit
+
+clients:
+  - name: management
+    token_hash_env: MCP_TOKEN_HASH_MANAGEMENT
+    role: admin
+  - name: operations
+    token_hash_env: MCP_TOKEN_HASH_OPERATIONS
+    role: operations
+  - name: staff
+    token_hash_env: MCP_TOKEN_HASH_STAFF
+    role: staff
+
+roles:
+  admin:
+    read:  ["**"]
+    write: ["**"]
+    deny:  ["_Audit/**", "_System/Access and Contribution Rules.md", ".obsidian/**"]
+  operations:
+    read:  ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "20 People/**", "30 Projects/**", "_System/**"]
+    write: ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "90 Staff Inbox/{client}/**"]
+    deny:  ["_Audit/**", ".obsidian/**"]
+  staff:
+    read:  ["50 Operations/Procedures/**", "40 Properties/**", "_System/**"]
+    write: ["90 Staff Inbox/{client}/**"]
+    deny:  ["_Audit/**", ".obsidian/**"]
+
+limits:
+  requests_per_minute: 60
+  max_note_bytes: 1048576

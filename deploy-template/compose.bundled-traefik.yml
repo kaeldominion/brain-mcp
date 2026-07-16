@@ -1,0 +1,40 @@
+# Overlay: bundled Traefik — for hosts with NO existing reverse proxy
+# (fresh DigitalOcean boxes etc). Hostinger VPSes usually already run
+# Traefik on 80/443; use compose.external-traefik.yml there instead.
+services:
+  traefik:
+    image: traefik:v3.3.4
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=${TRAEFIK_NETWORK:-brain-proxy}
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --accesslog=true
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+    networks: [proxy]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-letsencrypt:/letsencrypt
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+
+  brain-mcp:
+    labels:
+      - traefik.http.routers.brain-mcp.middlewares=security-headers@file,edge-ratelimit@file,body-limit@file
+
+volumes:
+  traefik-letsencrypt:

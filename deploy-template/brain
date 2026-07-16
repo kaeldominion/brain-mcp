@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# ./brain — terminal console. Uses the bootstrap venv when present so rich
+# prompts work; falls back to system python3 (plain prompts) before bootstrap.
+set -euo pipefail
+cd "$(dirname "$0")"
+PY=".venv/bin/python"
+[[ -x "$PY" ]] || PY="python3"
+exec "$PY" scripts/brain.py "$@"

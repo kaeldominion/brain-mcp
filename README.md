@@ -44,7 +44,7 @@ Then onboard each AI agent with:
 
 which prints **one copyable block** — MCP URL + bearer token (shown once) + the company-brain skill text. Paste it into the agent's config; that's the entire integration. Agents connect to `https://brain-mcp.<domain>/mcp` with `Authorization: Bearer <token>`.
 
-Day-2 commands: `./brain status` · `./brain verify` · `./brain rotate <name>` · `./brain revoke <name>` · **`./brain update`** (one command: latest release + restart + verify). Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
+Day-2 admin: just run **`./brain`** — an interactive console with everything (status, agents, tokens, offsite backup to your own private repo, verify, one-command update). Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
 
 ### Manual / headless install (no TUI)
 

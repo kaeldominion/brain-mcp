@@ -2,16 +2,18 @@
 
 Day-to-day running of a Company 2nd Brain install.
 
-## The ./brain tool
+## The ./brain console
 
-All routine operations go through the TUI (or the underlying scripts headlessly):
+Run `./brain` with no arguments for the interactive admin console — every operation in one arrow-key menu, nothing to memorize. Direct commands exist for scripting:
 
 | Command | Does | Script underneath |
 | --- | --- | --- |
+| `./brain` | Interactive admin console | (menu over the below) |
 | `./brain setup` | Full first-install wizard | `scripts/bootstrap.sh` |
 | `./brain add-agent` | Add an agent + token | `scripts/add-agent.sh` |
 | `./brain rotate <name>` | Rotate one agent's token | `scripts/rotate-token.sh` |
 | `./brain revoke <name>` | Remove an agent | `scripts/revoke-agent.sh` |
+| `./brain backup` | Configure offsite backup (guided) | writes `.env`, restarts sidecar |
 | `./brain status` | Stack + vault dashboard | `scripts/healthcheck.sh` |
 | `./brain verify` | Acceptance suite vs live stack | `scripts/verify.sh` |
 | `./brain update` | Pull latest release + restart + verify | `scripts/update.sh` |

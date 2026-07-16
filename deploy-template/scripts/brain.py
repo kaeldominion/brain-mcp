@@ -331,6 +331,11 @@ def cmd_setup(_):
     run(["scripts/bootstrap.sh"])
     grule()
 
+    if not backup_configured():
+        say("Offsite backup protects the brain if this server dies — strongly recommended.")
+        if confirm("Configure offsite backup now? (you can do it later: ./brain backup)"):
+            cmd_backup([])
+
     admin = next((c[0] for c in clients() if c[1] == "admin"), "admin")
     say(f"Your install has one agent: '{admin}' (the admin). Its onboarding block:")
     cmd_rotate_silent(admin)
@@ -444,6 +449,71 @@ def cmd_update(args):
     run(["scripts/update.sh", *args[:1]])
 
 
+def set_env(key, value):
+    env_file = ROOT / ".env"
+    lines = env_file.read_text().splitlines() if env_file.exists() else []
+    for i, line in enumerate(lines):
+        if line.startswith(f"{key}="):
+            lines[i] = f"{key}={value}"
+            break
+    else:
+        lines.append(f"{key}={value}")
+    env_file.write_text("\n".join(lines) + "\n")
+    env_file.chmod(0o600)
+
+
+def compose_cmd(*args, check=True):
+    return run(["bash", "-c", 'source scripts/lib/compose.sh && compose "$@"', "--", *args],
+               check=check)
+
+
+def backup_configured():
+    remote = _env_value("BACKUP_REMOTE")
+    return remote and "YOUR_ORG" not in remote
+
+
+def cmd_backup(_):
+    panel(
+        "Offsite backup pushes the vault (every ~15 min) to a private Git repo\n"
+        "that YOU own — your data never goes anywhere else.\n\n"
+        "Before continuing: create an empty PRIVATE repo\n"
+        "(GitHub → New repository → Private → no README).",
+        title="backup settings",
+    )
+    current = _env_value("BACKUP_REMOTE")
+    if backup_configured():
+        say(f"current remote: {current}")
+    url = ask("SSH URL of your private backup repo",
+              current if backup_configured() else "git@github.com:YOU/company-brain-backup.git")
+    if not url or "YOUR_ORG" in url or url.startswith("git@github.com:YOU/"):
+        say("No repo set — backup stays local-only (vault history on this server).", style="yellow")
+        return
+
+    keydir = ROOT / ".backup-key"
+    key = keydir / "id_ed25519"
+    if not key.exists():
+        keydir.mkdir(mode=0o700, exist_ok=True)
+        run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "2nd-brain-backup", "-f", str(key)])
+        say("  ✓ deploy key generated", style="green")
+    pub = (keydir / "id_ed25519.pub").read_text().strip()
+    panel(pub, title="deploy key — add this to the backup repo", border=TEAL)
+    say("GitHub: repo → Settings → Deploy keys → Add deploy key → paste → tick 'Allow write access'.")
+    if INTERACTIVE:
+        input("Press Enter once the key is added... ")
+
+    set_env("BACKUP_REMOTE", url)
+    set_env("BACKUP_SSH_KEY", str(key))
+    compose_cmd("up", "-d", "backup")
+    say("Testing a push…")
+    r = compose_cmd("run", "--rm", "--entrypoint", "sh", "backup", "/backup/backup-vault.sh",
+                    check=False)
+    if r.returncode == 0:
+        say("  ✓ backup pushed — offsite backup is live (check: ./brain status)", style="green")
+    else:
+        say("  ✗ push failed — check the repo URL and that the deploy key has write access, "
+            "then run backup settings again.", style="red")
+
+
 COMMANDS = {
     "setup": cmd_setup,
     "add-agent": cmd_add_agent,
@@ -452,25 +522,73 @@ COMMANDS = {
     "status": cmd_status,
     "verify": cmd_verify,
     "update": cmd_update,
+    "backup": cmd_backup,
 }
+
+MENU = [
+    ("status — stack, vault, agents, last backup", cmd_status),
+    ("add agent — onboard a new agent (URL + token + skill)", cmd_add_agent),
+    ("rotate token — new token for an agent", cmd_rotate),
+    ("revoke agent — remove an agent", cmd_revoke),
+    ("backup settings — offsite backup to your private repo", cmd_backup),
+    ("verify — run the acceptance suite", cmd_verify),
+    ("update — pull the latest release + restart + verify", cmd_update),
+    ("quit", None),
+]
+
+
+def menu():
+    """No-args interactive admin console — nothing to memorize."""
+    wordmark()
+    if not (ROOT / ".env").exists():
+        say("Not installed yet — starting setup.\n", style="yellow")
+        cmd_setup([])
+        return
+    if not backup_configured():
+        say("▲ offsite backup is NOT configured — pick 'backup settings' below.", style="yellow")
+    while True:
+        say("")
+        label = choose("2nd Brain admin — pick an action", [m[0] for m in MENU])
+        fn = dict(MENU).get(label)
+        if fn is None or label is None:
+            break
+        try:
+            fn([])
+        except SystemExit:
+            pass
+        except KeyboardInterrupt:
+            break
+
+
+def usage():
+    wordmark()
+    panel(
+        "./brain              interactive admin console (start here)\n"
+        "./brain <command>    direct commands:\n\n"
+        "  setup       first-install wizard (traefik-aware)\n"
+        "  add-agent   onboard an agent: URL + token + skill block\n"
+        "  rotate      rotate an agent's token\n"
+        "  revoke      remove an agent\n"
+        "  backup      configure offsite backup (your own private repo)\n"
+        "  status      stack + vault dashboard\n"
+        "  verify      run the acceptance suite\n"
+        "  update      pull the latest release + restart + verify",
+        title="brain",
+    )
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        wordmark()
-        panel(
-            "usage: ./brain <command>\n\n"
-            "  setup       first-install wizard (traefik-aware)\n"
-            "  add-agent   onboard an agent: URL + token + skill block\n"
-            "  rotate      rotate an agent's token\n"
-            "  revoke      remove an agent\n"
-            "  status      stack + vault dashboard\n"
-            "  verify      run the acceptance suite\n"
-            "  update      pull the latest release + restart + verify",
-            title="brain",
-        )
+    if len(sys.argv) < 2:
+        if INTERACTIVE:
+            menu()
+        else:
+            usage()
         footer()
-        sys.exit(0 if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help") else 1)
+        return
+    if sys.argv[1] not in COMMANDS:
+        usage()
+        footer()
+        sys.exit(0 if sys.argv[1] in ("-h", "--help") else 1)
     COMMANDS[sys.argv[1]](sys.argv[2:])
     footer()
 

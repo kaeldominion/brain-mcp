@@ -23,18 +23,32 @@ One generic image, zero client-specific content. Per-client installs are thin pr
 
 A plain `GET /health` route serves Docker/Traefik health checks.
 
-## Install
+## Install — `./brain setup` (the TUI does everything)
+
+On the server (needs Docker + Compose v2, python3, openssl):
 
 ```bash
-docker pull ghcr.io/kaeldominion/brain-mcp:0.1.0
+git clone https://github.com/kaeldominion/brain-mcp
+cp -r brain-mcp/deploy-template my-brain
+cd my-brain
+./brain setup
 ```
 
-1. Copy `examples/brain.config.example.yaml` → your `brain.config.yaml`; define clients and roles.
-2. Generate a token per client: `token=<deploy>_<client>_$(openssl rand -hex 16)`; give the plaintext to the agent, put `echo -n "$token" | shasum -a 256` into the matching `MCP_TOKEN_HASH_*` env var.
-3. Seed the vault from `vault-template/` (baked into the image at `/opt/vault-template`). Include `_System/` — it carries the agent instructions, templates, entity index, and the onboarding interview protocol.
-4. Run per `examples/docker-compose.example.yml` (vault mounted at `/vault`, audit dir at `/audit`, config read-only at `/config/brain.config.yaml`).
+That's the whole install. The guided wizard runs preflight checks, detects an existing Traefik (Hostinger boxes ship one) or deploys the bundled one, asks for your domain/email, generates hashed agent tokens, seeds the vault (including `_System/` — agent instructions, note templates, entity index, and the onboarding interview protocol), starts the stack, and runs the acceptance suite.
 
-Agents connect to `http://brain-mcp:8000/mcp` (or `https://brain-mcp.<domain>/mcp` through a reverse proxy) with header `Authorization: Bearer <token>`.
+Then onboard each AI agent with:
+
+```bash
+./brain add-agent
+```
+
+which prints **one copyable block** — MCP URL + bearer token (shown once) + the company-brain skill text. Paste it into the agent's config; that's the entire integration. Agents connect to `https://brain-mcp.<domain>/mcp` with `Authorization: Bearer <token>`.
+
+Day-2 commands: `./brain status` · `./brain verify` · `./brain rotate <name>` · `./brain revoke <name>`. Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
+
+### Manual / headless install (no TUI)
+
+Everything the TUI does is plain scripts: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh` — or wire the image yourself from `examples/brain.config.example.yaml` + `examples/docker-compose.example.yml` (vault at `/vault`, audit at `/audit`, config read-only at `/config/brain.config.yaml`; token hashes are `sha256` of `<deploy>_<client>_$(openssl rand -hex 16)` in the `MCP_TOKEN_HASH_*` env vars; the vault template is baked into the image at `/opt/vault-template`).
 
 The config is validated at boot; the server refuses to start on any error. Adding a client or role is a config change + restart — never a code change.
 

@@ -164,24 +164,56 @@ def show_block_once(name, block):
             print("\033[2J\033[H", end="")
 
 
+DEDICATED_NET = "2nd-brain-proxy"
+
+
 def detect_traefik():
-    """Return (mode, network) — 'external' + its network if a Traefik is
-    already running on this host (Hostinger default), else ('bundled', None)."""
+    """Inspect any running Traefik (Hostinger ships one) and pull everything
+    the deploy needs from its actual container config: attachable network,
+    the entrypoint bound to :443, and its certresolver name. Returns a dict
+    with mode 'external' + details, or mode 'bundled' if no Traefik runs."""
+    import json
+
     r = subprocess.run(
         ["docker", "ps", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}"],
         capture_output=True, text=True,
     )
     for line in r.stdout.splitlines():
         cid, cname, image = (line.split("\t") + ["", ""])[:3]
-        if "traefik" in image.lower() or "traefik" in cname.lower():
-            nets = subprocess.run(
-                ["docker", "inspect", cid, "-f",
-                 "{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}"],
-                capture_output=True, text=True,
-            ).stdout.split()
-            nets = [n for n in nets if n not in ("bridge", "host", "none")]
-            return "external", (nets[0] if nets else None), cname
-    return "bundled", None, None
+        if "traefik" not in image.lower() and "traefik" not in cname.lower():
+            continue
+        raw = subprocess.run(["docker", "inspect", cid], capture_output=True, text=True).stdout
+        try:
+            info = json.loads(raw)[0]
+        except (ValueError, IndexError):
+            return {"mode": "external", "id": cid, "name": cname, "network": None,
+                    "entrypoint": None, "resolver": None}
+        nets = [n for n in info.get("NetworkSettings", {}).get("Networks", {})
+                if n not in ("bridge", "host", "none")]
+        argv = " ".join((info.get("Args") or []) + (info.get("Config", {}).get("Cmd") or []))
+        m = re.search(r"--entry[pP]oints?\.([\w-]+)\.address=:?443\b", argv)
+        entrypoint = m.group(1) if m else None
+        m = re.search(r"--certificates[rR]esolvers?\.([\w-]+)\.", argv)
+        resolver = m.group(1) if m else None
+        return {"mode": "external", "id": cid, "name": cname,
+                "network": nets[0] if nets else None,
+                "entrypoint": entrypoint, "resolver": resolver}
+    return {"mode": "bundled"}
+
+
+def attach_network_to_traefik(traefik_id):
+    """Traefik had no attachable network (host networking / default bridge):
+    create a dedicated one and connect Traefik to it — no guessing, no prompt."""
+    subprocess.run(["docker", "network", "create", DEDICATED_NET],
+                   capture_output=True, text=True)  # exists already → fine
+    subprocess.run(["docker", "network", "connect", DEDICATED_NET, traefik_id],
+                   capture_output=True, text=True)  # already connected → fine
+    check = subprocess.run(
+        ["docker", "network", "inspect", DEDICATED_NET, "-f",
+         "{{range .Containers}}{{.Name}} {{end}}"],
+        capture_output=True, text=True,
+    )
+    return DEDICATED_NET if check.returncode == 0 and check.stdout.strip() else None
 
 
 def ensure_venv():
@@ -228,17 +260,35 @@ def cmd_setup(_):
         sys.exit(1)
     ensure_venv()
 
-    mode, network, tname = detect_traefik()
+    det = detect_traefik()
+    mode = det["mode"]
+    network = entrypoint = resolver = None
     if mode == "external":
-        say(f"  ✓ existing Traefik detected ('{tname}', network: {network or 'unknown'})", style="green")
+        say(f"  ✓ existing Traefik detected ('{det['name']}') — brain-mcp will attach to it", style="green")
+        network = det["network"]
+        if network:
+            say(f"  ✓ Traefik network: {network}", style="green")
+        else:
+            say(f"  ▲ Traefik has no attachable network — creating '{DEDICATED_NET}' and connecting Traefik to it", style="yellow")
+            network = attach_network_to_traefik(det["id"])
+            if network:
+                say(f"  ✓ Traefik connected to '{network}'", style="green")
+            else:
+                say("  ✗ could not connect Traefik to a network automatically", style="red")
+                network = ask("Docker network to share with Traefik", DEDICATED_NET)
+        entrypoint = det["entrypoint"]
+        resolver = det["resolver"]
         say(
-            "    brain-mcp will attach to it and route via labels.\n"
-            "    Check that TRAEFIK_ENTRYPOINT / TRAEFIK_CERTRESOLVER in .env match its\n"
-            "    configuration, and that it redirects HTTP→HTTPS — gaps there weaken TLS.",
-            style="yellow",
+            f"  {'✓' if entrypoint else '▲'} HTTPS entrypoint: "
+            + (entrypoint or "not detectable (file-based config?) — using 'websecure'; fix TRAEFIK_ENTRYPOINT in .env if different"),
+            style="green" if entrypoint else "yellow",
         )
-        if network is None:
-            network = ask("Docker network of the existing Traefik", "traefik")
+        say(
+            f"  {'✓' if resolver else '▲'} certificate resolver: "
+            + (resolver or "not detectable — using 'letsencrypt'; fix TRAEFIK_CERTRESOLVER in .env if different"),
+            style="green" if resolver else "yellow",
+        )
+        say("    Also confirm the existing Traefik redirects HTTP→HTTPS — gaps there weaken TLS.", style="dim")
     else:
         say("  ✓ no existing Traefik — the bundled one will be deployed on 80/443", style="green")
 
@@ -260,6 +310,10 @@ def cmd_setup(_):
         )
         if network:
             text = text.replace("TRAEFIK_NETWORK=brain-proxy", f"TRAEFIK_NETWORK={network}")
+        if entrypoint:
+            text = text.replace("TRAEFIK_ENTRYPOINT=websecure", f"TRAEFIK_ENTRYPOINT={entrypoint}")
+        if resolver:
+            text = text.replace("TRAEFIK_CERTRESOLVER=letsencrypt", f"TRAEFIK_CERTRESOLVER={resolver}")
         env_file.write_text(text)
         env_file.chmod(0o600)
         say("  ✓ .env written (fill in BACKUP_REMOTE / BACKUP_SSH_KEY before relying on backups)")

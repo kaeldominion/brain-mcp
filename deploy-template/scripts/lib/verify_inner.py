@@ -6,7 +6,7 @@ verify.sh via `docker compose exec -T brain-mcp python -` (the image carries
 fastmcp, so no host Python deps are needed); the calls themselves go through
 the full HTTP auth path.
 Unauthenticated checks always run. Authed checks need plaintext tokens in
-VERIFY_TOKEN_MANAGEMENT / VERIFY_TOKEN_OPERATIONS / VERIFY_TOKEN_STAFF
+VERIFY_TOKEN_ADMIN / VERIFY_TOKEN_OPERATIONS / VERIFY_TOKEN_STAFF
 (supplied by ./brain setup right after token generation, or pasted by the
 operator); without them those checks are reported as skipped.
 
@@ -70,7 +70,7 @@ async def main():
             "UNAUTHORIZED", "invalid token rejected",
         )
 
-    mgmt = os.environ.get("VERIFY_TOKEN_MANAGEMENT")
+    mgmt = os.environ.get("VERIFY_TOKEN_ADMIN")
     ops = os.environ.get("VERIFY_TOKEN_OPERATIONS")
     staff = os.environ.get("VERIFY_TOKEN_STAFF")
 
@@ -110,7 +110,7 @@ async def main():
                 "FORBIDDEN", "admin denied audit area",
             )
     else:
-        report("skip", "management checks (no VERIFY_TOKEN_MANAGEMENT)")
+        report("skip", "management checks (no VERIFY_TOKEN_ADMIN)")
 
     if ops:
         async with client(ops) as c:

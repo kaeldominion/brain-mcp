@@ -331,10 +331,11 @@ def cmd_setup(_):
     run(["scripts/bootstrap.sh"])
     grule()
 
-    say("Default agents: management (admin), operations, staff. Onboarding blocks:")
-    for name, _role, _env in clients():
-        if confirm(f"Print the onboarding block for '{name}' now (rotates its token)?"):
-            cmd_rotate_silent(name)
+    admin = next((c[0] for c in clients() if c[1] == "admin"), "admin")
+    say(f"Your install has one agent: '{admin}' (the admin). Its onboarding block:")
+    cmd_rotate_silent(admin)
+    while confirm("Add another agent now? (you can always do this later with ./brain add-agent)"):
+        cmd_add_agent([])
 
     domain = _env_value("COMPANY_DOMAIN")
     grule()
@@ -388,7 +389,12 @@ def _env_value(key):
 
 def cmd_add_agent(args):
     name = args[0] if args else ask("Agent name")
-    role = args[1] if len(args) > 1 else choose("Role", ["operations", "staff", "admin"])
+    role = args[1] if len(args) > 1 else choose(
+        "Role", ["operations", "staff", "custom (define it in brain.config.yaml first)"]
+    )
+    if role.startswith("custom"):
+        say("Add the role under roles: in brain.config.yaml, then re-run ./brain add-agent.", style="yellow")
+        return
     r = run(["scripts/add-agent.sh", name, "--role", role], capture=True)
     m = re.search(r"Bearer (\S+)", r.stdout)
     if m:

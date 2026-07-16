@@ -1,21 +1,19 @@
-# Company 2nd Brain server configuration (default 3-agent lineup)
-# Managed by scripts/add-agent.sh and ./brain; safe to edit by hand.
+# Company 2nd Brain server configuration
+# Ships with ONE client — the admin agent. Add more with ./brain add-agent
+# (or scripts/add-agent.sh); never by hand unless you know the rules below.
 # Validation: exactly one admin client, unique names, valid globs; the
 # server refuses to boot otherwise.
+#
+# The operations/staff roles below are ready-made permission profiles for
+# agents you add later; defining a role grants nothing until a client uses it.
 
 vault_root: /vault
 audit_dir: /audit
 
 clients:
-  - name: management
-    token_hash_env: MCP_TOKEN_HASH_MANAGEMENT
+  - name: admin
+    token_hash_env: MCP_TOKEN_HASH_ADMIN
     role: admin
-  - name: operations
-    token_hash_env: MCP_TOKEN_HASH_OPERATIONS
-    role: operations
-  - name: staff
-    token_hash_env: MCP_TOKEN_HASH_STAFF
-    role: staff
 
 roles:
   admin:

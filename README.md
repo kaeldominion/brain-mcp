@@ -46,6 +46,10 @@ which prints **one copyable block** — MCP URL + bearer token (shown once) + th
 
 Day-2 admin: just run **`./brain`** — an interactive console with everything (status, agents, tokens, offsite backup to your own private repo, verify, one-command update). Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
 
+### Personal brains — no server needed
+
+One human + one agent doesn't need tokens, locking, or Docker: a personal 2nd Brain is the same vault template as **local files** next to your agent, with the same templates, entity index, and onboarding interview. See [PERSONAL.md](PERSONAL.md) — including the zero-conversion upgrade path to a full server install when a second agent or machine ever needs it. Company plans typically pair one shared server brain with a local personal brain per person.
+
 ### Manual / headless install (no TUI)
 
 Everything the TUI does is plain scripts: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh` — or wire the image yourself from `examples/brain.config.example.yaml` + `examples/docker-compose.example.yml` (vault at `/vault`, audit at `/audit`, config read-only at `/config/brain.config.yaml`; token hashes are `sha256` of `<deploy>_<client>_$(openssl rand -hex 16)` in the `MCP_TOKEN_HASH_*` env vars; the vault template is baked into the image at `/opt/vault-template`).

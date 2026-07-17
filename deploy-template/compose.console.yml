@@ -1,5 +1,5 @@
 # Overlay: the web console (enable with CONSOLE_ENABLED=true in .env, or
-# ./brain console). Served at console.<COMPANY_DOMAIN>. Access = session
+# ./brain console). Served at 2ndbrain.<COMPANY_DOMAIN>. Access = session
 # login with a console/admin token; the console never touches the vault
 # filesystem — everything goes through brain-mcp's API. Never expose it
 # without reading docs/SECURITY.md (IP allowlist / Tailscale recommended).
@@ -25,7 +25,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-brain-proxy}
-      - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.rule=Host(`console.${COMPANY_DOMAIN:?}`)
+      - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.rule=Host(`${CONSOLE_SUBDOMAIN:-2ndbrain}.${COMPANY_DOMAIN:?}`)
       - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
       - traefik.http.services.${DEPLOY_PREFIX:-brain}-console.loadbalancer.server.port=3000

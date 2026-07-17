@@ -38,7 +38,7 @@ Prints **one copyable block** — MCP URL + bearer token (shown once) + the `com
 ./brain console        # enable → prints the login token once
 ```
 
-Browser control room at `https://console.<domain>`: dashboard (note counts, unverified queue, agents, backup state, activity feed), the **review queue** (promote / archive unverified notes and inbox items with one click — the weekly ritual becomes a 10-minute session), agent management (add/rotate/revoke, token shown once), read-only vault browser with search, and the filterable audit trail. It talks only to brain-mcp's API — never the vault filesystem. Off by default; read `docs/SECURITY.md` before exposing it.
+Browser control room at `https://2ndbrain.<domain>`: dashboard (note counts, unverified queue, agents, backup state, activity feed), the **review queue** (promote / archive unverified notes and inbox items with one click — the weekly ritual becomes a 10-minute session), agent management (add/rotate/revoke, token shown once), read-only vault browser with search, and the filterable audit trail. It talks only to brain-mcp's API — never the vault filesystem. Off by default; read `docs/SECURITY.md` before exposing it.
 
 ## What's here
 

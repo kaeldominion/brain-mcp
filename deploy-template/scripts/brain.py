@@ -337,6 +337,11 @@ def cmd_setup(_):
         if confirm("Configure offsite backup now? (you can do it later: ./brain backup)"):
             cmd_backup([])
 
+    if _env_value("CONSOLE_ENABLED") != "true" and confirm(
+        "Enable the web console (browser dashboard, review queue, agent management)?"
+    ):
+        cmd_console([])
+
     admin = next((c[0] for c in clients() if c[1] == "admin"), "admin")
     say(f"Your install has one agent: '{admin}' (the admin). Its onboarding block:")
     cmd_rotate_silent(admin)
@@ -457,8 +462,10 @@ def cmd_update(args):
 def cmd_console(_):
     enabled = _env_value("CONSOLE_ENABLED") == "true"
     domain = _env_value("COMPANY_DOMAIN")
+    sub = _env_value("CONSOLE_SUBDOMAIN") or "2ndbrain"
+    host = f"{sub}.{domain}"
     if enabled:
-        say(f"Web console is ENABLED at https://console.{domain}", style="green")
+        say(f"Web console is ENABLED at https://{host}", style="green")
         if confirm("Disable it?"):
             set_env("CONSOLE_ENABLED", "false")
             run(["bash", "-c",
@@ -469,7 +476,7 @@ def cmd_console(_):
 
     panel(
         "The web console is the browser control room: dashboard, review queue,\n"
-        "agents, vault browser, audit trail — at https://console." + (domain or "<domain>") + "\n\n"
+        f"agents, vault browser, audit trail — at https://{host}\n\n"
         "Login uses a dedicated console token (created now, shown once).\n"
         "It is protected by that login; for defence-in-depth add an IP\n"
         "allowlist or Tailscale — see docs/SECURITY.md.",
@@ -487,7 +494,7 @@ def cmd_console(_):
                 capture=True).stdout.strip()
     set_env("CONSOLE_ENABLED", "true")
     compose_cmd("up", "-d")
-    say(f"  ✓ console starting at https://console.{domain} (DNS: point console.{domain} at this server)", style="green")
+    say(f"  ✓ console starting at https://{host} (DNS: point {host} at this server)", style="green")
     show_block_once("console-web", f"Console login token:\n\n  {token}\n\nUse it on the sign-in screen.")
 
 

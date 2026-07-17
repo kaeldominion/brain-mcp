@@ -11,10 +11,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   if (!request.cookies.get("bt")?.value) {
-    const login = request.nextUrl.clone();
-    login.pathname = "/login";
-    login.search = "";
-    return NextResponse.redirect(login);
+    // relative redirect: absolute URLs built from the request can carry the
+    // container bind address (0.0.0.0) when behind a reverse proxy
+    return new NextResponse(null, { status: 307, headers: { Location: "/login" } });
   }
   return NextResponse.next();
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { brain } from "@/lib/brain";
 
 const NAV = [
   ["/", "Dashboard"],
@@ -7,20 +8,25 @@ const NAV = [
   ["/agents", "Agents"],
   ["/vault", "Vault"],
   ["/audit", "Audit"],
+  ["/help", "How it works"],
 ] as const;
 
-export default function Shell({
+export default async function Shell({
   active,
   children,
 }: {
   active: string;
   children: React.ReactNode;
 }) {
+  const identity = await brain("/identity").catch(() => ({ name: null }));
   return (
     <div className="shell">
       <aside className="side">
-        <div className="wordmark">
-          2nd <span className="grad-text">Brain</span> Console
+        <div className="wordmark" style={{ marginBottom: 4 }}>
+          2nd <span className="grad-text">Brain</span>
+        </div>
+        <div className="dim" style={{ fontSize: 12.5, marginBottom: 20, lineHeight: 1.4 }}>
+          {identity.name ?? "Company 2nd Brain"}
         </div>
         {NAV.map(([href, label]) => (
           <Link key={href} href={href} className={`nav-item ${active === href ? "active" : ""}`}>

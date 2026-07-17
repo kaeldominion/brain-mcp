@@ -176,6 +176,31 @@ class TestVaultBrowsing:
         assert any(hit["path"] == "10 Companies/Acme.md" for hit in r.json()["results"])
 
 
+class TestIdentity:
+    def test_generic_home_yields_no_name(self, api):
+        (api["vault"] / "_System" / "Company 2nd Brain Home.md").write_text(
+            "# Company 2nd Brain Home\n\nWelcome.\n"
+        )
+        r = get(api, "/api/identity", CONSOLE_TOKEN).json()
+        assert r["name"] is None
+
+    def test_personalized_home_yields_name_and_about(self, api):
+        (api["vault"] / "_System" / "Company 2nd Brain Home.md").write_text(
+            "---\nstatus: canonical\n---\n"
+            "# Acme Villas — 2nd Brain\n\n"
+            "## About\n\n"
+            "Acme Villas manages 14 rental properties in Bali.\nFounded 2020.\n\n"
+            "## Map\n\ntable here\n"
+        )
+        r = get(api, "/api/identity", CONSOLE_TOKEN).json()
+        assert r["name"] == "Acme Villas — 2nd Brain"
+        assert "14 rental properties" in r["about"]
+        assert "table here" not in r["about"]
+
+    def test_identity_requires_auth(self, api):
+        assert get(api, "/api/identity").status_code == 401
+
+
 class TestOnboardingStatus:
     def test_no_protocol_note_means_not_started(self, api):
         s = get(api, "/api/stats", CONSOLE_TOKEN).json()

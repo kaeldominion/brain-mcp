@@ -47,17 +47,27 @@ function Onboarding({ ob }: { ob: { phase: number | null; complete: boolean; ses
 }
 
 export default async function Dashboard() {
-  const [stats, health, clients, audit] = await Promise.all([
+  const [stats, health, clients, audit, identity] = await Promise.all([
     brain("/stats"),
     brain("/health"),
     brain("/clients"),
     brain("/audit?limit=8"),
+    brain("/identity"),
   ]);
   const folders = Object.entries(stats.by_folder ?? {}) as [string, number][];
   const max = Math.max(1, ...folders.map(([, n]) => n));
   return (
     <Shell active="/">
-      <h1>Dashboard</h1>
+      <h1>{identity.name ?? "Dashboard"}</h1>
+      {identity.about && (
+        <p style={{ maxWidth: 640, margin: "6px 0 2px" }}>{identity.about}</p>
+      )}
+      {!identity.name && (
+        <p className="dim" style={{ maxWidth: 640 }}>
+          This brain hasn't introduced itself yet — the onboarding interview fills in the company
+          name and overview (Phase 1).
+        </p>
+      )}
       <p className="dim">
         brain-mcp v{health.version} · vault {health.vault_mounted ? "mounted" : "MISSING"}
       </p>

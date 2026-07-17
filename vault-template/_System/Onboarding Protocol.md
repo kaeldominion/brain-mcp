@@ -23,7 +23,7 @@ Explain to the owner what the brain is, what you will ask, and that everything s
 
 ## Phase 1 — The business
 
-What the company does, entities and legal structure, who owns what, key relationships. Output: Company notes in `10 Companies` + fill in [[Company 2nd Brain Home]].
+What the company does, entities and legal structure, who owns what, key relationships. Output: Company notes in `10 Companies` + personalize [[Company 2nd Brain Home]]: set its H1 to `<Company Name> — 2nd Brain` and write 2–3 sentences under its `## About` heading (the console shows both as this brain's identity).
 
 ## Phase 2 — Entity sweep
 

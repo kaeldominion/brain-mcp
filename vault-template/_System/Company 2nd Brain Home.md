@@ -5,6 +5,14 @@ status: canonical
 
 # Company 2nd Brain Home
 
+<!-- Onboarding Phase 1: rename the H1 above to "<Company Name> — 2nd Brain"
+     and fill the About section — the console displays both as this brain's identity. -->
+
+## About
+
+<!-- 2–3 sentences: what the company does, who it serves, how it makes money.
+     Written by the admin agent from the owner's Phase 1 answers. -->
+
 Welcome. This vault is the canonical shared knowledge base for the company. It is written and maintained by AI agents through the Company Brain MCP server, and read by humans in Obsidian (read-only Git clone).
 
 ## How this vault works

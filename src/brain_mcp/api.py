@@ -195,6 +195,26 @@ def register_api(
         limit = min(int(request.query_params.get("limit", 20)), 100)
         return JSONResponse({"results": search_engine.search(service.perms, client, q, folder, limit)})
 
+    @mcp.custom_route("/api/identity", methods=["GET"])
+    @guard
+    async def api_identity(request: Request, client: Client):
+        """Whose brain is this? Read from the Home note the onboarding fills in:
+        H1 = brain name, '## About' section = company overview."""
+        import re as _re
+
+        p = config.vault_root / "_System" / "Company 2nd Brain Home.md"
+        name = about = None
+        if p.is_file():
+            body = frontmatter.loads(p.read_text(encoding="utf-8", errors="replace")).content
+            m = _re.search(r"^#\s+(.+?)\s*$", body, _re.M)
+            if m and m.group(1).strip().lower() != "company 2nd brain home":
+                name = m.group(1).strip()
+            m = _re.search(r"^##\s+About\s*$([\s\S]*?)(?=^#{1,2}\s|\Z)", body, _re.M)
+            if m:
+                text = _re.sub(r"<!--[\s\S]*?-->", "", m.group(1)).strip()
+                about = text or None
+        return JSONResponse({"name": name, "about": about})
+
     @mcp.custom_route("/api/graph", methods=["GET"])
     @guard
     async def api_graph(request: Request, client: Client):

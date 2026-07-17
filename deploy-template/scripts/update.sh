@@ -41,6 +41,13 @@ if [[ -f .env ]]; then
   echo "==> Pulling image + restarting"
   compose pull -q
   compose up -d
+  echo "==> Waiting for brain-mcp health"
+  state=starting
+  for i in $(seq 1 30); do
+    state=$(compose ps --format '{{.Health}}' brain-mcp 2>/dev/null || echo starting)
+    [[ "$state" == "healthy" ]] && break
+    sleep 2
+  done
   echo "==> Verifying"
   scripts/verify.sh
 else

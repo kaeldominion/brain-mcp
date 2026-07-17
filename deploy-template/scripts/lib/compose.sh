@@ -1,10 +1,14 @@
 # Shared compose invocation — sourced by every script. One code path for
 # both Traefik modes: TRAEFIK_MODE=bundled|external (from .env, default bundled).
+# POSIX sh compatible — verify.sh re-executes this function under `sh -c`,
+# which is dash on Ubuntu; no bashisms allowed here.
 compose() {
-  local mode extra=""
   mode="$(grep -s '^TRAEFIK_MODE=' .env | cut -d= -f2)"
   mode="${mode:-bundled}"
-  [[ "$(grep -s '^CONSOLE_ENABLED=' .env | cut -d= -f2)" == "true" ]] && extra="-f compose.console.yml"
+  extra=""
+  if [ "$(grep -s '^CONSOLE_ENABLED=' .env | cut -d= -f2)" = "true" ]; then
+    extra="-f compose.console.yml"
+  fi
   case "$mode" in
     bundled)  docker compose -f docker-compose.yml -f compose.bundled-traefik.yml $extra "$@" ;;
     external) docker compose -f docker-compose.yml -f compose.external-traefik.yml $extra "$@" ;;

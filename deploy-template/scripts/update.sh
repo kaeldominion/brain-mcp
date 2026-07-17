@@ -41,6 +41,24 @@ if [[ -f .env ]]; then
   echo "==> Pulling image + restarting"
   compose pull -q
   compose up -d
+  echo "==> Seeding NEW system notes (existing vault files are never touched)"
+  set -a; . ./.env; set +a
+  NEW_IMAGE=$(grep -Eo 'ghcr.io/kaeldominion/brain-mcp:[0-9A-Za-z.-]+' docker-compose.yml | head -1)
+  cid=$(docker create "$NEW_IMAGE")
+  seedtmp=$(mktemp -d)
+  docker cp "$cid":/opt/vault-template "$seedtmp/vault-template" >/dev/null
+  docker rm "$cid" >/dev/null
+  added=0
+  (cd "$seedtmp/vault-template" && find . -type f | while read -r f; do
+     if [ ! -e "$VAULT_DIR/$f" ]; then
+       mkdir -p "$VAULT_DIR/$(dirname "$f")"
+       cp "$f" "$VAULT_DIR/$f"
+       echo "    + ${f#./}"
+     fi
+   done)
+  rm -rf "$seedtmp"
+  chown -R 10001:10001 "$VAULT_DIR" 2>/dev/null || sudo chown -R 10001:10001 "$VAULT_DIR" 2>/dev/null || true
+
   echo "==> Waiting for brain-mcp health"
   state=starting
   for i in $(seq 1 30); do

@@ -21,4 +21,8 @@ the `company_brain` MCP server.
 
 **Admin agents only:** when the vault is empty or the owner asks, offer to run
 the structured onboarding interview in `_System/Onboarding Protocol.md` —
-one question at a time, creating notes as answers arrive.
+one question at a time, creating notes as answers arrive. If you have
+connectors to the owner's tools (email, calendar, tasks, drive), also offer
+`_System/Ingestion Protocol.md` — an automatic quick/full scan that seeds the
+brain from real data under strict privacy rules, so the interview becomes
+confirm-and-correct.

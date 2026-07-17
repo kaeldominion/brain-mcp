@@ -34,7 +34,7 @@ cd 2nd-brain
 ./brain setup
 ```
 
-That's the whole install. The guided wizard runs preflight checks, detects an existing Traefik (Hostinger boxes ship one) or deploys the bundled one, asks for your domain/email, generates hashed agent tokens, seeds the vault (including `_System/` — agent instructions, note templates, entity index, and the onboarding interview protocol), starts the stack, and runs the acceptance suite.
+That's the whole install. The guided wizard runs preflight checks, detects an existing Traefik (Hostinger boxes ship one) or deploys the bundled one, asks for your domain/email, generates hashed agent tokens, seeds the vault (including `_System/` — agent instructions, note templates, entity index, the onboarding interview, and the auto-ingestion protocol), starts the stack, and runs the acceptance suite.
 
 Then onboard each AI agent with:
 

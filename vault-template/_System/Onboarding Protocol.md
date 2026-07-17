@@ -27,7 +27,9 @@ What the company does, entities and legal structure, who owns what, key relation
 
 ## Phase 2 — Entity sweep
 
-People (staff, clients, vendors, partners), assets (properties/products/whatever the business runs on), active projects. For each: name, role, contact context, current state. Output: one templated note each + [[Entity Index]] rows.
+**First, offer ingestion**: if you have connectors to the owner's tools (email, calendar, tasks, drive), offer to run [[Ingestion Protocol]] — quick scan, full scan, or skip (manual only). Ingestion pre-populates people, projects, and meetings from real data, and this phase becomes *confirm and correct*: "I found 34 people and 12 projects — here are the ones that look important; who am I wrong about?"
+
+Then sweep whatever ingestion didn't cover (or everything, if skipped): people (staff, clients, vendors, partners), assets (properties/products/whatever the business runs on), active projects. For each: name, role, contact context, current state. Output: one templated note each + [[Entity Index]] rows.
 
 ## Phase 3 — Truth sources
 

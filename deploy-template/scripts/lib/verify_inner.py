@@ -71,8 +71,8 @@ async def main():
         )
 
     mgmt = os.environ.get("VERIFY_TOKEN_ADMIN")
-    ops = os.environ.get("VERIFY_TOKEN_OPERATIONS")
-    staff = os.environ.get("VERIFY_TOKEN_STAFF")
+    ops = os.environ.get("VERIFY_TOKEN_EDITOR")
+    staff = os.environ.get("VERIFY_TOKEN_CONTRIBUTOR")
 
     if mgmt:
         async with client(mgmt) as c:
@@ -82,7 +82,7 @@ async def main():
                     "create_note",
                     {"path": note, "content": "# Acceptance\n\n## Check\n\nv1\n"},
                 )).data
-                report("ok", "management create")
+                report("ok", "admin create")
                 upd = (await c.call_tool(
                     "update_note_section",
                     {"path": note, "heading": "Check", "content": "v2",
@@ -100,7 +100,7 @@ async def main():
                 report("ok", "archive + restore")
                 await c.call_tool("archive_note", {"path": note})  # leave vault clean
             except Exception as e:
-                report("FAIL", "management flow", str(e))
+                report("FAIL", "admin flow", str(e))
             await expect_error(
                 c.call_tool("read_note", {"path": "../etc/passwd.md"}),
                 "INVALID_PATH", "traversal rejected",
@@ -110,33 +110,36 @@ async def main():
                 "FORBIDDEN", "admin denied audit area",
             )
     else:
-        report("skip", "management checks (no VERIFY_TOKEN_ADMIN)")
+        report("skip", "admin checks (no VERIFY_TOKEN_ADMIN)")
 
     if ops:
         async with client(ops) as c:
             await expect_error(
                 c.call_tool("create_note", {"path": "60 Finance/x.md", "content": "#"}),
-                "FORBIDDEN", "operations denied finance",
+                "FORBIDDEN", "editor denied finance",
             )
             r = (await c.call_tool("list_directory", {"path": "50 Operations"})).data
-            report("ok" if "entries" in r else "FAIL", "operations lists operations")
+            report("ok" if "entries" in r else "FAIL", "editor lists its scoped area")
     else:
-        report("skip", "operations checks (no VERIFY_TOKEN_OPERATIONS)")
+        report("skip", "editor checks (no VERIFY_TOKEN_EDITOR)")
 
     if staff:
+        # client name is the token's middle segment (deploy_client_random)
+        parts = staff.split("_")
+        name = parts[1] if len(parts) >= 3 else "contributor"
         async with client(staff) as c:
             inbox = (await c.call_tool(
                 "add_inbox_item",
-                {"agent_name": "staff", "title": "verify item", "content": "from verify.sh"},
+                {"agent_name": name, "title": "verify item", "content": "from verify.sh"},
             )).data
-            report("ok" if inbox["path"].startswith("90 Staff Inbox/staff/") else "FAIL",
-                   "staff inbox write")
+            report("ok" if inbox["path"].startswith(f"90 Staff Inbox/{name}/") else "FAIL",
+                   "contributor inbox write")
             await expect_error(
                 c.call_tool("create_note", {"path": "80 Decisions/x.md", "content": "#"}),
-                "FORBIDDEN", "staff denied canonical write",
+                "FORBIDDEN", "contributor denied canonical write",
             )
     else:
-        report("skip", "staff checks (no VERIFY_TOKEN_STAFF)")
+        report("skip", "contributor checks (no VERIFY_TOKEN_CONTRIBUTOR)")
 
     fails = RESULTS.count("FAIL")
     print(f"\n{RESULTS.count('ok')} ok, {fails} failed, {RESULTS.count('skip')} skipped")

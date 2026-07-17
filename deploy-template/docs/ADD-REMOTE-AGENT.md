@@ -4,7 +4,7 @@ Every agent — same VPS or across the world — is an external MCP client on `h
 
 ## Steps
 
-1. On the VPS: `./brain add-agent` (or headless: `scripts/add-agent.sh finance --role operations`).
+1. On the VPS: `./brain add-agent` (or headless: `scripts/add-agent.sh finance --role editor`).
 2. It prints **one copyable block**: the MCP connection config (URL + bearer token, shown once) plus the `company-brain` skill text. Paste the whole block into the agent's deployment config — that is the entire integration.
 3. Restart the agent so tools are rediscovered; ask it to call `health_check`.
 

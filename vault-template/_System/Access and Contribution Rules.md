@@ -11,9 +11,11 @@ Human-readable summary of who can do what. The authoritative enforcement is the 
 
 | Role | Read | Write |
 | --- | --- | --- |
-| admin | Entire vault | Entire vault except audit internals and this note |
-| operations | Properties, operations, meetings, people, projects, system notes | Operations/property areas and its own inbox |
-| staff | Approved procedures, property information, system notes | Only its own Staff Inbox folder |
+| admin | Entire vault | Entire vault except audit internals and this note; only role that promotes notes to canonical |
+| editor | Its scoped areas (e.g. properties, operations, meetings, people, projects) + system notes | Its scoped areas and its own inbox |
+| contributor | Approved procedures and reference notes + system notes | Only its own inbox folder |
+
+Installs may define additional roles (finance, director, …) in the server configuration; this table describes the defaults.
 
 ## Ground rules
 

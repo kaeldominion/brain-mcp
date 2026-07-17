@@ -3,7 +3,7 @@
 # Host-level checks here; protocol/auth/authz checks run via a scripted
 # external MCP test client (lib/verify_inner.py — valid token per role,
 # invalid token, no token). Pass agent tokens for the full authed suite:
-#   VERIFY_TOKEN_ADMIN=... VERIFY_TOKEN_OPERATIONS=... VERIFY_TOKEN_STAFF=... scripts/verify.sh
+#   VERIFY_TOKEN_ADMIN=... VERIFY_TOKEN_EDITOR=... VERIFY_TOKEN_CONTRIBUTOR=... scripts/verify.sh
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib/compose.sh
@@ -41,8 +41,8 @@ echo ""
 echo "— protocol / auth / authz (scripted external MCP test client) —"
 compose exec -T \
   -e VERIFY_TOKEN_ADMIN="${VERIFY_TOKEN_ADMIN:-}" \
-  -e VERIFY_TOKEN_OPERATIONS="${VERIFY_TOKEN_OPERATIONS:-}" \
-  -e VERIFY_TOKEN_STAFF="${VERIFY_TOKEN_STAFF:-}" \
+  -e VERIFY_TOKEN_EDITOR="${VERIFY_TOKEN_EDITOR:-}" \
+  -e VERIFY_TOKEN_CONTRIBUTOR="${VERIFY_TOKEN_CONTRIBUTOR:-}" \
   brain-mcp python - < scripts/lib/verify_inner.py
 INNER=$?
 

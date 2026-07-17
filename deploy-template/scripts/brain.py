@@ -395,8 +395,12 @@ def _env_value(key):
 def cmd_add_agent(args):
     name = args[0] if args else ask("Agent name")
     role = args[1] if len(args) > 1 else choose(
-        "Role", ["operations", "staff", "custom (define it in brain.config.yaml first)"]
+        "Role",
+        ["editor — read/write its scoped areas + own inbox",
+         "contributor — read approved areas, write own inbox only",
+         "custom (define it in brain.config.yaml first)"],
     )
+    role = role.split(" ")[0]
     if role.startswith("custom"):
         say("Add the role under roles: in brain.config.yaml, then re-run ./brain add-agent.", style="yellow")
         return

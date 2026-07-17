@@ -4,8 +4,12 @@
 # Validation: exactly one admin client, unique names, valid globs; the
 # server refuses to boot otherwise.
 #
-# The operations/staff roles below are ready-made permission profiles for
+# The editor/contributor roles below are ready-made capability profiles for
 # agents you add later; defining a role grants nothing until a client uses it.
+# Rename or add roles freely (finance, director, ...) — role names are yours,
+# only 'admin' is reserved.
+#   editor      — read/write within its scoped areas + its own inbox
+#   contributor — read approved areas; write ONLY to its own inbox
 
 vault_root: /vault
 audit_dir: /audit
@@ -20,11 +24,11 @@ roles:
     read:  ["**"]
     write: ["**"]
     deny:  ["_Audit/**", "_System/Access and Contribution Rules.md", ".obsidian/**"]
-  operations:
+  editor:
     read:  ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "20 People/**", "30 Projects/**", "_System/**"]
     write: ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "90 Staff Inbox/{client}/**"]
     deny:  ["_Audit/**", ".obsidian/**"]
-  staff:
+  contributor:
     read:  ["50 Operations/Procedures/**", "40 Properties/**", "_System/**"]
     write: ["90 Staff Inbox/{client}/**"]
     deny:  ["_Audit/**", ".obsidian/**"]

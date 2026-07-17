@@ -44,6 +44,8 @@ Then onboard each AI agent with:
 
 which prints **one copyable block** — MCP URL + bearer token (shown once) + the company-brain skill text. Paste it into the agent's config; that's the entire integration. Agents connect to `https://brain-mcp.<domain>/mcp` with `Authorization: Bearer <token>`.
 
+Roles out of the box: **admin** (full access, promotes notes to canonical — exactly one), **editor** (read/write its scoped areas + own inbox), **contributor** (read approved areas, write only its own inbox). Add your own roles in `brain.config.yaml`. Then give the admin agent the **daily triage + weekly review cron prompts** from [`deploy-template/docs/OPERATIONS.md`](deploy-template/docs/OPERATIONS.md) — that's what sweeps the inboxes and unverified notes the other agents produce.
+
 Day-2 admin: just run **`./brain`** — an interactive console with everything (status, agents, tokens, offsite backup to your own private repo, verify, one-command update). Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
 
 **Multiple brains on one server**: each brain is one folder — copy the template again, run `./brain setup` with a different prefix/domain, and it shares the existing reverse proxy while staying fully isolated (own containers, vault, tokens, backups). See [deploy-template/README.md](deploy-template/README.md#multiple-brains-on-one-server).

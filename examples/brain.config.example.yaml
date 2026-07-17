@@ -21,21 +21,21 @@ clients:
     role: admin
   - name: operations
     token_hash_env: MCP_TOKEN_HASH_OPERATIONS
-    role: operations
+    role: editor
   - name: staff
     token_hash_env: MCP_TOKEN_HASH_STAFF
-    role: staff
+    role: contributor
 
 roles:
   admin:
     read:  ["**"]
     write: ["**"]
     deny:  ["_Audit/**", "_System/Access and Contribution Rules.md", ".obsidian/**"]
-  operations:
+  editor:
     read:  ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "20 People/**", "30 Projects/**", "_System/**"]
     write: ["40 Properties/**", "50 Operations/**", "70 Meetings/**", "90 Staff Inbox/{client}/**"]
     deny:  ["_Audit/**", ".obsidian/**"]
-  staff:
+  contributor:
     read:  ["50 Operations/Procedures/**", "40 Properties/**", "_System/**"]
     write: ["90 Staff Inbox/{client}/**"]
     deny:  ["_Audit/**", ".obsidian/**"]

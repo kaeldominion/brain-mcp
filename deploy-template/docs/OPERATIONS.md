@@ -40,9 +40,21 @@ git clone <BACKUP_REMOTE> my-company-brain
 
 All writes go through agents → MCP.
 
-## Weekly review ritual
+## Admin agent rituals (set these up — the brain doesn't clean itself)
 
-Prompt (or schedule) the admin agent to sweep inboxes and `status: unverified` notes — promote / merge / archive, repair wikilinks, update the Entity Index. This is the anti-rot mechanism; don't skip it.
+Editors and contributors write into their scoped areas and inboxes as `status: unverified`; the admin agent is the one that turns that stream into canonical knowledge. Nothing in this stack schedules agents, so give the **admin agent** two cron jobs (Hermes cron or equivalent) with prompts like:
+
+**Daily — inbox triage (files, never promotes):**
+
+> Check the company brain: list recent changes and every note in `90 Staff Inbox/*`. For each new item: merge it into the right canonical note (as unverified), or file it as a new templated entity note, or flag it for me if it's unclear or contradicts something canonical. Update the Entity Index. Don't promote anything to canonical.
+
+**Weekly — the review (proposes, then executes on confirmation):**
+
+> Sweep all `status: unverified` notes in the company brain. Propose which should be promoted to canonical, merged, or archived — one line of reasoning each. After my confirmation: promote via `set_note_status`, archive stale items in `85 Open Actions`, repair broken wikilinks, reconcile the Entity Index.
+
+The split matters: daily filing keeps inboxes empty without any human involvement; promotion stays a human-confirmed act so `canonical` keeps meaning something. This weekly review is the anti-rot mechanism — don't skip it.
+
+The same pattern covers ingestion (e.g. an agent's hourly cron: "list new Granola meetings since last sync, file each as a meeting note with the recording link, decisions into `80 Decisions`, all unverified").
 
 ## Backups
 

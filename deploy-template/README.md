@@ -27,7 +27,7 @@ Headless: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh`.
 ## Onboarding an agent
 
 ```bash
-./brain add-agent          # or: scripts/add-agent.sh finance --role operations
+./brain add-agent          # or: scripts/add-agent.sh finance --role editor
 ```
 
 Prints **one copyable block** — MCP URL + bearer token (shown once) + the `company-brain` skill text from `skills/company-brain.md`. Pasting that block into the agent's deployment config is the entire integration. Same flow for agents on the same VPS or across the world; there is no local/remote distinction (same-VPS HTTPS loops locally — ms-level overhead vs seconds of model latency).

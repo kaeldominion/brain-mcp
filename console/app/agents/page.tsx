@@ -31,7 +31,9 @@ export default async function Agents() {
         </tbody>
       </table>
       <p className="dim" style={{ marginTop: 16, fontSize: 12.5 }}>
-        Static (env-managed) agents predate the dynamic registry — rotate those with the ./brain TUI on the server.
+        <b>server-managed</b> = the bootstrap admin (and any pre-registry agents): rotate those with
+        ./brain on the server. Everything added here is instant and fully manageable. Revoking an
+        agent kills its token immediately — its notes and audit history remain, stamped with its name.
       </p>
     </Shell>
   );

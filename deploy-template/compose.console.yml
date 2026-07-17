@@ -5,7 +5,7 @@
 # without reading docs/SECURITY.md (IP allowlist / Tailscale recommended).
 services:
   console:
-    image: ghcr.io/kaeldominion/brain-console:0.2.2   # pinned like everything else
+    image: ghcr.io/kaeldominion/brain-console:0.3.0   # pinned like everything else
     restart: unless-stopped
     expose:
       - "3000"

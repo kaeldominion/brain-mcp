@@ -176,6 +176,29 @@ class TestVaultBrowsing:
         assert any(hit["path"] == "10 Companies/Acme.md" for hit in r.json()["results"])
 
 
+class TestGraph:
+    def test_graph_nodes_and_wikilink_edges(self, api):
+        (api["vault"] / "20 People").mkdir(exist_ok=True)
+        (api["vault"] / "20 People" / "Jane Doe.md").write_text(
+            "---\nstatus: unverified\n---\n# Jane Doe\n\nWorks at [[Acme]].\n"
+        )
+        r = get(api, "/api/graph", CONSOLE_TOKEN)
+        assert r.status_code == 200
+        data = r.json()
+        ids = {n["id"] for n in data["nodes"]}
+        assert "20 People/Jane Doe.md" in ids
+        assert "10 Companies/Acme.md" in ids
+        assert {"source": "20 People/Jane Doe.md", "target": "10 Companies/Acme.md"} in [
+            {"source": e["source"], "target": e["target"]} for e in data["edges"]
+        ]
+        jane = next(n for n in data["nodes"] if n["id"] == "20 People/Jane Doe.md")
+        assert jane["folder"] == "20 People"
+        assert jane["title"] == "Jane Doe"
+
+    def test_graph_requires_auth(self, api):
+        assert get(api, "/api/graph").status_code == 401
+
+
 class TestClients:
     def test_list_clients(self, api):
         r = get(api, "/api/clients", CONSOLE_TOKEN)

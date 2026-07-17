@@ -3,6 +3,7 @@ import Link from "next/link";
 const NAV = [
   ["/", "Dashboard"],
   ["/review", "Review queue"],
+  ["/graph", "Graph"],
   ["/agents", "Agents"],
   ["/vault", "Vault"],
   ["/audit", "Audit"],

@@ -487,11 +487,20 @@ def cmd_console(_):
     py = str(ROOT / ".venv" / "bin" / "python")
     if not Path(py).exists():
         py = sys.executable
-    r = subprocess.run([py, "scripts/lib/config_edit.py", "has-client", "console-web"])
-    if r.returncode != 0:
-        run([py, "scripts/lib/config_edit.py", "add-client", "console-web", "--role", "console"])
-    token = run(["scripts/generate-secrets.sh", "console-web", "--quiet-token-only"],
-                capture=True).stdout.strip()
+    clients_file = (_env_value("CLIENTS_DIR") or f"{_env_value('VAULT_DIR')}-clients") + "/clients.yaml"
+    cfg = "scripts/lib/config_edit.py"
+    is_static = subprocess.run([py, cfg, "has-client", "console-web"], capture_output=True).returncode == 0
+    is_dyn = subprocess.run([py, cfg, "--clients-file", clients_file, "is-dynamic", "console-web"],
+                            capture_output=True).returncode == 0
+    if is_static or is_dyn:
+        r = run(["scripts/rotate-token.sh", "console-web"], capture=True)
+        m = re.search(r"new token: (\S+)", r.stdout)
+        token = m.group(1) if m else ""
+    else:
+        token = run([py, cfg, "--clients-file", clients_file,
+                     "--deploy", _env_value("DEPLOY_PREFIX") or "brain",
+                     "add-dynamic", "console-web", "--role", "console"], capture=True).stdout.strip()
+        subprocess.run(["chown", "10001:10001", clients_file], capture_output=True)
     set_env("CONSOLE_ENABLED", "true")
     compose_cmd("up", "-d")
     say(f"  ✓ console starting at https://{host} (DNS: point {host} at this server)", style="green")

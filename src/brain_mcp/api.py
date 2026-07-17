@@ -168,6 +168,64 @@ def register_api(
         limit = min(int(request.query_params.get("limit", 20)), 100)
         return JSONResponse({"results": search_engine.search(service.perms, client, q, folder, limit)})
 
+    @mcp.custom_route("/api/graph", methods=["GET"])
+    @guard
+    async def api_graph(request: Request, client: Client):
+        """Nodes = notes; edges = resolved [[wikilinks]] — the mind-graph view."""
+        import re as _re
+
+        notes: list[dict] = []
+        title_map: dict[str, str] = {}
+        stem_map: dict[str, str] = {}
+        contents: dict[str, str] = {}
+        for p, rel in _iter_notes():
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            post_meta: dict = {}
+            try:
+                post = frontmatter.loads(text)
+                post_meta = post.metadata
+                body = post.content
+            except Exception:
+                body = text
+            title = None
+            for line in body.splitlines():
+                if line.startswith("#"):
+                    title = line.lstrip("#").strip()
+                    break
+            stem = Path(rel).stem
+            title = title or stem
+            notes.append(
+                {
+                    "id": rel,
+                    "title": title,
+                    "folder": rel.split("/", 1)[0],
+                    "status": post_meta.get("status"),
+                }
+            )
+            contents[rel] = body
+            title_map.setdefault(title.lower(), rel)
+            stem_map.setdefault(stem.lower(), rel)
+
+        edges = []
+        seen = set()
+        for rel, body in contents.items():
+            for raw in _re.findall(r"\[\[([^\]|#]+)", body):
+                key = raw.strip().lower()
+                target = title_map.get(key) or stem_map.get(key)
+                if target and target != rel and (rel, target) not in seen:
+                    seen.add((rel, target))
+                    edges.append({"source": rel, "target": target})
+        degree: dict[str, int] = {}
+        for e in edges:
+            degree[e["source"]] = degree.get(e["source"], 0) + 1
+            degree[e["target"]] = degree.get(e["target"], 0) + 1
+        for n in notes:
+            n["links"] = degree.get(n["id"], 0)
+        return JSONResponse({"nodes": notes, "edges": edges})
+
     @mcp.custom_route("/api/notes/promote", methods=["POST"])
     @guard
     async def api_promote(request: Request, client: Client):

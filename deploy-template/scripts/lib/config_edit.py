@@ -109,9 +109,92 @@ def cmd_remove_client(args):
     print(f"removed client {args.name!r}")
 
 
+# ---- dynamic registry (clients.yaml) ---------------------------------------
+# The server hot-reloads this file: mutations here need NO restart, and the
+# resulting agents are manageable from the web console.
+
+
+def _load_dynamic(path: Path) -> list:
+    if not path.exists():
+        return []
+    data = _yaml().safe_load(path.read_text()) or {}
+    return list(data.get("clients", []))
+
+
+def _write_dynamic(path: Path, entries: list) -> None:
+    import os
+    import tempfile
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".clients-", suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        f.write("# Managed by brain-mcp tooling. Hashes only — never tokens.\n")
+        _yaml().safe_dump({"clients": entries}, f, sort_keys=False)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+
+
+def _all_names(args) -> set:
+    static = {c.get("name") for c in load(args.config).get("clients", [])}
+    return static | {c.get("name") for c in _load_dynamic(args.clients_file)}
+
+
+def _new_token(deploy: str, name: str) -> str:
+    import secrets
+
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "client"
+    return f"{deploy}_{slug}_{secrets.token_hex(16)}"
+
+
+def _sha256(token: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def cmd_is_dynamic(args):
+    sys.exit(0 if any(c.get("name") == args.name for c in _load_dynamic(args.clients_file)) else 1)
+
+
+def cmd_add_dynamic(args):
+    data = load(args.config)
+    if args.role not in data.get("roles", {}) and args.role != "console":
+        sys.exit(f"error: unknown role {args.role!r} (defined: {', '.join(data.get('roles', {}))})")
+    if args.name in _all_names(args):
+        sys.exit(f"error: client {args.name!r} already exists")
+    if args.role == "admin":
+        sys.exit("error: the admin client is env-managed; exactly one admin is allowed")
+    token = _new_token(args.deploy, args.name)
+    entries = _load_dynamic(args.clients_file)
+    entries.append({"name": args.name, "role": args.role, "token_hash": _sha256(token)})
+    _write_dynamic(args.clients_file, entries)
+    print(token)
+
+
+def cmd_rotate_dynamic(args):
+    entries = _load_dynamic(args.clients_file)
+    target = next((c for c in entries if c.get("name") == args.name), None)
+    if target is None:
+        sys.exit(f"error: client {args.name!r} not found in {args.clients_file}")
+    token = _new_token(args.deploy, args.name)
+    target["token_hash"] = _sha256(token)
+    _write_dynamic(args.clients_file, entries)
+    print(token)
+
+
+def cmd_remove_dynamic(args):
+    entries = _load_dynamic(args.clients_file)
+    if not any(c.get("name") == args.name for c in entries):
+        sys.exit(f"error: client {args.name!r} not found in {args.clients_file}")
+    _write_dynamic(args.clients_file, [c for c in entries if c.get("name") != args.name])
+    print(f"removed client {args.name!r}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=Path("brain.config.yaml"))
+    parser.add_argument("--clients-file", type=Path, default=None)
+    parser.add_argument("--deploy", default="brain")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("has-client")
@@ -134,7 +217,23 @@ def main():
     p.add_argument("name")
     p.set_defaults(fn=cmd_remove_client)
 
+    for cmd_name, fn in [
+        ("is-dynamic", cmd_is_dynamic),
+        ("rotate-dynamic", cmd_rotate_dynamic),
+        ("remove-dynamic", cmd_remove_dynamic),
+    ]:
+        p = sub.add_parser(cmd_name)
+        p.add_argument("name")
+        p.set_defaults(fn=fn)
+
+    p = sub.add_parser("add-dynamic")
+    p.add_argument("name")
+    p.add_argument("--role", required=True)
+    p.set_defaults(fn=cmd_add_dynamic)
+
     args = parser.parse_args()
+    if args.cmd in ("is-dynamic", "add-dynamic", "rotate-dynamic", "remove-dynamic") and not args.clients_file:
+        sys.exit("error: --clients-file is required for dynamic commands")
     args.fn(args)
 
 

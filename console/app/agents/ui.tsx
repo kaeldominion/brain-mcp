@@ -63,7 +63,7 @@ export function AgentRowActions({ name, source }: { name: string; source: string
   const [reveal, setReveal] = useState<string | null>(null);
 
   if (source !== "dynamic")
-    return <span className="dim" style={{ fontSize: 12 }}>env-managed</span>;
+    return <span className="dim" style={{ fontSize: 12 }}>server-managed (./brain)</span>;
 
   async function rotate() {
     if (!confirm(`Rotate the token for '${name}'? The old token stops working immediately.`)) return;

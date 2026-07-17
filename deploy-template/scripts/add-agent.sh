@@ -27,24 +27,18 @@ while [[ $# -gt 0 ]]; do
 done
 [[ -n "$ROLE" ]] || { echo "error: --role is required" >&2; exit 1; }
 
-if "$PY" scripts/lib/config_edit.py has-client "$NAME"; then
-  echo "error: client '$NAME' already exists in brain.config.yaml" >&2
-  exit 1
-fi
+# agents go into the DYNAMIC registry (clients.yaml): hot-reloaded by the
+# server (no restart) and manageable from the web console afterwards
+set -a; source .env 2>/dev/null; set +a
+CLIENTS_DIR="${CLIENTS_DIR:-${VAULT_DIR:?}-clients}"
+CLIENTS_FILE="$CLIENTS_DIR/clients.yaml"
 
-# 1. config first (validates role exists + single-admin rule), then secrets
-"$PY" scripts/lib/config_edit.py add-client "$NAME" --role "$ROLE"
-TOKEN=$(scripts/generate-secrets.sh "$NAME" --deploy "$DEPLOY" --quiet-token-only)
+TOKEN=$("$PY" scripts/lib/config_edit.py --clients-file "$CLIENTS_FILE" --deploy "$DEPLOY" \
+  add-dynamic "$NAME" --role "$ROLE")
 
-# 2. validate the final config with the real server code (same image as prod)
-compose run --rm --no-deps --entrypoint python brain-mcp -c \
-  "from brain_mcp.config import load_config; load_config('/config/brain.config.yaml'); print('config OK')"
-
-# 3. apply
-if [[ $RESTART -eq 1 ]]; then
-  compose up -d brain-mcp
-  echo "brain-mcp restarted with client '$NAME' (role: $ROLE)" >&2
-fi
+# the server (uid 10001) must be able to read what we just wrote as root
+chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || sudo chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || true
+echo "agent '$NAME' (role: $ROLE) is live — no restart needed" >&2
 
 DOMAIN="$(grep -s '^COMPANY_DOMAIN=' .env | cut -d= -f2)"
 cat <<EOF

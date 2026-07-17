@@ -26,11 +26,15 @@ export default async function Vault({
   const { path = "/", q } = await searchParams;
   const isNote = path.endsWith(".md");
 
+  const parent = path.includes("/") ? path.split("/").slice(0, -1).join("/") : "";
+  const backHref = isNote || path !== "/" ? `/vault${parent ? `?path=${encodeURIComponent(parent)}` : ""}` : null;
+
   let body: React.ReactNode;
   if (q) {
     const { results } = await brain(`/search?q=${encodeURIComponent(q)}`);
     body = (
       <>
+        <p><Link href="/vault" className="dim">← back to vault</Link></p>
         <h2>Search: “{q}”</h2>
         {results.length === 0 ? (
           <p className="empty">No matches.</p>
@@ -47,21 +51,38 @@ export default async function Vault({
     );
   } else if (isNote) {
     const note = await brain(`/note?path=${encodeURIComponent(path)}`);
+    const status = note.content.match(/^---\n[\s\S]*?status:\s*(\w+)[\s\S]*?\n---/)?.[1];
     body = (
-      <article className="note-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
+      <>
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
+          <span className="row">
+            {backHref && <Link href={backHref} className="btn">← back</Link>}
+            {status && <span className={`badge ${status === "unverified" ? "unverified" : "ok"}`}>{status}</span>}
+          </span>
+          <span className="dim mono" style={{ fontSize: 11.5 }}>modified {note.modified}</span>
+        </div>
+        <article className="note-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
+      </>
     );
   } else {
     const { entries } = await brain(`/list?path=${encodeURIComponent(path)}`);
     body = (
-      <div className="folder-grid">
-        {entries.map((e: any) => (
-          <Link key={e.path} href={`/vault?path=${encodeURIComponent(e.path)}`} className="folder-item">
-            {e.type === "dir" ? "▸ " : ""}
-            {e.name}
-          </Link>
-        ))}
-        {entries.length === 0 && <p className="empty">Empty folder.</p>}
-      </div>
+      <>
+        {backHref && (
+          <p style={{ marginBottom: 10 }}>
+            <Link href={backHref} className="btn">← back</Link>
+          </p>
+        )}
+        <div className="folder-grid">
+          {entries.map((e: any) => (
+            <Link key={e.path} href={`/vault?path=${encodeURIComponent(e.path)}`} className="folder-item">
+              {e.type === "dir" ? "▸ " : ""}
+              {e.name}
+            </Link>
+          ))}
+          {entries.length === 0 && <p className="empty">Empty folder.</p>}
+        </div>
+      </>
     );
   }
 

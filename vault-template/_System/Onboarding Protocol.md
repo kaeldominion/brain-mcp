@@ -14,7 +14,7 @@ Instructions for the admin/management agent on a fresh install: build this brain
 - Never invent facts to fill a template — leave sections empty rather than guess.
 - Every note you create is `status: unverified` until Phase 6 confirmation.
 - Use the templates in `_System/Templates/` and register every entity in [[Entity Index]].
-- The protocol is phased so it can pause and resume across days. Record progress under "Session log" below by appending after each session.
+- The protocol is phased so it can pause and resume across days. **End every session by appending one line to the Session log below**, always naming the highest phase reached, e.g. `- 2026-07-17 — Phase 3 reached, 14 notes created`. When the Phase 6 review is confirmed, append a final line containing the words `Onboarding complete`. (The console reads these lines to show progress.)
 - Target: roughly 30–50 seed notes by the end of Phase 6.
 
 ## Phase 0 — Orientation

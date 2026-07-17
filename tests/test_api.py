@@ -176,6 +176,33 @@ class TestVaultBrowsing:
         assert any(hit["path"] == "10 Companies/Acme.md" for hit in r.json()["results"])
 
 
+class TestOnboardingStatus:
+    def test_no_protocol_note_means_not_started(self, api):
+        s = get(api, "/api/stats", CONSOLE_TOKEN).json()
+        assert s["onboarding"] == {"phase": None, "complete": False, "sessions": 0}
+
+    def test_phase_parsed_from_session_log(self, api):
+        (api["vault"] / "_System" / "Onboarding Protocol.md").write_text(
+            "# Onboarding Protocol\n\n## Phase 0 — Orientation\n\ninstructions\n\n"
+            "## Session log\n\n"
+            "- 2026-07-16 — Phase 1 reached, 6 notes created\n"
+            "- 2026-07-17 — Phase 3 reached, 14 notes created\n"
+        )
+        s = get(api, "/api/stats", CONSOLE_TOKEN).json()
+        assert s["onboarding"]["phase"] == 3
+        assert s["onboarding"]["complete"] is False
+        assert s["onboarding"]["sessions"] == 2
+
+    def test_complete_detected(self, api):
+        p = api["vault"] / "_System" / "Onboarding Protocol.md"
+        p.write_text(
+            p.read_text() + "- 2026-07-18 — Phase 6 review confirmed. Onboarding complete.\n"
+        )
+        s = get(api, "/api/stats", CONSOLE_TOKEN).json()
+        assert s["onboarding"]["phase"] == 6
+        assert s["onboarding"]["complete"] is True
+
+
 class TestGraph:
     def test_graph_nodes_and_wikilink_edges(self, api):
         (api["vault"] / "20 People").mkdir(exist_ok=True)

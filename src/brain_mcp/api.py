@@ -88,6 +88,32 @@ def register_api(
             }
         )
 
+    def _onboarding_status() -> dict:
+        """Parse the agent-maintained session log in the Onboarding Protocol note.
+        Lenient by design: any 'Phase N' mention counts; 'onboarding complete'
+        (or a completed phase 6) marks done."""
+        import re as _re
+
+        p = config.vault_root / "_System" / "Onboarding Protocol.md"
+        if not p.is_file():
+            return {"phase": None, "complete": False, "sessions": 0}
+        text = p.read_text(encoding="utf-8", errors="replace")
+        m = _re.search(r"^#+\s*Session log\s*$", text, _re.I | _re.M)
+        section = text[m.end():] if m else ""
+        lines = [
+            ln for ln in section.splitlines()
+            if ln.strip() and not ln.strip().startswith("<!--")
+        ]
+        phases = [int(n) for n in _re.findall(r"phase\s*[=:]?\s*([0-6])\b", section, _re.I)]
+        complete = bool(_re.search(r"onboarding\s+complete", section, _re.I)) or (
+            phases and max(phases) == 6 and bool(_re.search(r"\bcomplete|\bconfirmed", section, _re.I))
+        )
+        return {
+            "phase": max(phases) if phases else None,
+            "complete": complete,
+            "sessions": len(lines),
+        }
+
     @mcp.custom_route("/api/stats", methods=["GET"])
     @guard
     async def api_stats(request: Request, client: Client):
@@ -111,6 +137,7 @@ def register_api(
                 "unverified": unverified,
                 "inbox_items": inbox,
                 "by_folder": dict(sorted(by_folder.items())),
+                "onboarding": _onboarding_status(),
             }
         )
 

@@ -2,6 +2,50 @@ import Link from "next/link";
 import Shell from "@/components/shell";
 import { brain } from "@/lib/brain";
 
+const PHASES = [
+  "Orientation", "The business", "Entity sweep", "Truth sources",
+  "Operations", "Money + decisions", "Review",
+];
+
+function Onboarding({ ob }: { ob: { phase: number | null; complete: boolean; sessions: number } }) {
+  if (!ob) return null;
+  if (ob.complete) {
+    return (
+      <p style={{ color: "var(--teal)", marginBottom: 16 }}>
+        ✓ Onboarding complete — the brain is seeded and confirmed.
+      </p>
+    );
+  }
+  if (ob.phase === null) {
+    return (
+      <div className="card" style={{ marginBottom: 16 }}>
+        <b>Onboarding not started.</b>
+        <span className="dim"> Connect your admin agent and say hello — it interviews you and builds the brain as you answer.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
+        <b>Onboarding — Phase {ob.phase} of 6: {PHASES[ob.phase] ?? ""}</b>
+        <span className="dim" style={{ fontSize: 12 }}>
+          {ob.sessions} session{ob.sessions === 1 ? "" : "s"} · continue by chatting with your admin agent
+        </span>
+      </div>
+      <div className="bar-track">
+        <div className="bar" style={{ width: `${((ob.phase + 1) / 7) * 100}%` }} />
+      </div>
+      <div className="row" style={{ justifyContent: "space-between", marginTop: 6 }}>
+        {PHASES.map((name, i) => (
+          <span key={name} className="dim" style={{ fontSize: 10.5, opacity: i <= (ob.phase ?? -1) ? 1 : 0.45 }}>
+            {i}. {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function Dashboard() {
   const [stats, health, clients, audit] = await Promise.all([
     brain("/stats"),
@@ -18,6 +62,7 @@ export default async function Dashboard() {
         brain-mcp v{health.version} · vault {health.vault_mounted ? "mounted" : "MISSING"}
       </p>
       <hr className="hairline" />
+      <Onboarding ob={stats.onboarding} />
       <div className="cards">
         <div className="card"><div className="num">{stats.notes_total}</div><div className="label">notes</div></div>
         <Link href="/review" className="card"><div className="num" style={{ color: stats.unverified ? "var(--amber)" : "var(--teal)" }}>{stats.unverified}</div><div className="label">unverified</div></Link>

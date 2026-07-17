@@ -1,6 +1,6 @@
 [project]
 name = "brain-mcp"
-version = "0.3.1"
+version = "0.3.2"
 description = "Company 2nd Brain MCP server — the sole controlled writer to an Obsidian-compatible Markdown vault"
 readme = "README.md"
 requires-python = ">=3.12"

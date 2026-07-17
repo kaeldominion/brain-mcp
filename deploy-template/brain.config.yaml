@@ -13,6 +13,9 @@
 
 vault_root: /vault
 audit_dir: /audit
+# dynamic agents (added via the admin API / web console) live here — hashes
+# only, hot-reloaded, no restarts. Static clients below still work as before.
+clients_file: /clients/clients.yaml
 
 clients:
   - name: admin

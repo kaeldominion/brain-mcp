@@ -18,7 +18,8 @@ from typing import Any, Callable, Optional
 import frontmatter
 
 from brain_mcp.auth import Client
-from brain_mcp.config import ADMIN_ROLE, BrainConfig
+from brain_mcp.config import BrainConfig
+from brain_mcp.permissions import ADMIN_ROLE, CONSOLE_ROLE
 from brain_mcp.errors import (
     AlreadyExists,
     Conflict,
@@ -132,7 +133,7 @@ class VaultService:
             raise
 
     def _require_admin(self, client: Client, tool: str, rel_path: str) -> None:
-        if client.role != ADMIN_ROLE:
+        if client.role not in (ADMIN_ROLE, CONSOLE_ROLE):
             err = PermissionDenied(f"{tool} is admin-only", path=rel_path, action="write")
             self._audit(client, tool, rel_path, ok=False, error=err.message)
             raise err

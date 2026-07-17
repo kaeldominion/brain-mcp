@@ -20,6 +20,7 @@ command -v openssl >/dev/null || die "openssl is required"
 [[ -f .env ]] || die "no .env — copy .env.example to .env and fill it in (or run ./brain setup)"
 set -a; source .env; set +a
 [[ "${VAULT_DIR:-}" && "${AUDIT_DIR:-}" ]] || die "VAULT_DIR and AUDIT_DIR must be set in .env"
+CLIENTS_DIR="${CLIENTS_DIR:-${VAULT_DIR}-clients}"
 chmod 600 .env
 
 TRAEFIK_MODE="${TRAEFIK_MODE:-bundled}"
@@ -41,7 +42,8 @@ BRAIN_IMAGE=$(grep -Eo 'ghcr.io/kaeldominion/brain-mcp:[0-9a-zA-Z.-]+' docker-co
 [[ -n "$BRAIN_IMAGE" ]] || die "could not find pinned brain-mcp image in docker-compose.yml"
 
 say "Seeding vault at $VAULT_DIR from $BRAIN_IMAGE"
-sudo mkdir -p "$VAULT_DIR" "$AUDIT_DIR"
+sudo mkdir -p "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
+sudo chmod 700 "$CLIENTS_DIR"
 sudo chown "$(id -u)":"$(id -g)" "$VAULT_DIR" "$AUDIT_DIR"   # writable for seeding; handed to the server user below
 docker pull -q "$BRAIN_IMAGE" >/dev/null
 cid=$(docker create "$BRAIN_IMAGE")
@@ -69,10 +71,10 @@ EOF
     && git -C "$VAULT_DIR" remote add origin "$BACKUP_REMOTE" || true
 fi
 
-say "Handing vault + audit ownership to the server user"
+say "Handing vault + audit + clients ownership to the server user"
 # the server container runs as non-root UID 10001 (baked into the image);
 # without this, reads work but every write fails with 'Permission denied'
-sudo chown -R 10001:10001 "$VAULT_DIR" "$AUDIT_DIR"
+sudo chown -R 10001:10001 "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
 
 say "Tooling venv (.venv: pyyaml, rich, questionary)"
 [[ -d .venv ]] || python3 -m venv .venv

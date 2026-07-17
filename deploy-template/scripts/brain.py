@@ -314,6 +314,7 @@ def cmd_setup(_):
             .replace("ACME_EMAIL=admin@example.com", f"ACME_EMAIL={email}")
             .replace("VAULT_DIR=/srv/company-2nd-brain", f"VAULT_DIR={vault}")
             .replace("AUDIT_DIR=/srv/company-2nd-brain-audit", f"AUDIT_DIR={vault}-audit")
+            .replace("CLIENTS_DIR=/srv/company-2nd-brain-clients", f"CLIENTS_DIR={vault}-clients")
             .replace("TRAEFIK_MODE=bundled", f"TRAEFIK_MODE={mode}")
         )
         if network:

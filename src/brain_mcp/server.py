@@ -21,12 +21,14 @@ from fastmcp.server.dependencies import get_http_headers
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from brain_mcp import __version__
+from brain_mcp.api import register_api
 from brain_mcp.audit import Auditor
-from brain_mcp.auth import Client, TokenRegistry
+from brain_mcp.auth import Client
 from brain_mcp.config import BrainConfig, load_config
 from brain_mcp.errors import BrainError
 from brain_mcp.notes import VaultService
 from brain_mcp.ratelimit import RateLimiter
+from brain_mcp.registry import ClientRegistry
 from brain_mcp.search import SearchEngine
 
 DEFAULT_CONFIG_PATH = "/config/brain.config.yaml"
@@ -61,7 +63,7 @@ def _tool_error(e: BrainError) -> ToolError:
 
 
 class AuthMiddleware(Middleware):
-    def __init__(self, registry: TokenRegistry, limiter: RateLimiter):
+    def __init__(self, registry: ClientRegistry, limiter: RateLimiter):
         self.registry = registry
         self.limiter = limiter
 
@@ -88,7 +90,7 @@ def build_server(config_path: str | Path | None = None) -> FastMCP:
     config: BrainConfig = load_config(
         config_path or os.environ.get("BRAIN_CONFIG", DEFAULT_CONFIG_PATH)
     )
-    registry = TokenRegistry.from_config(config, os.environ)
+    registry = ClientRegistry.from_config(config, os.environ)
     auditor = Auditor(config.audit_dir)
     service = VaultService(config, audit_hook=auditor.record)
     search_engine = SearchEngine(config)
@@ -115,6 +117,8 @@ def build_server(config_path: str | Path | None = None) -> FastMCP:
                 raise _tool_error(e) from e
 
         return wrapper
+
+    register_api(mcp, config, registry, service, limiter)
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health_route(request):

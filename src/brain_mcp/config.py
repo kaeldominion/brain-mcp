@@ -13,9 +13,7 @@ from pathlib import Path
 import yaml
 
 from brain_mcp.errors import ConfigError
-from brain_mcp.permissions import glob_to_regex
-
-ADMIN_ROLE = "admin"
+from brain_mcp.permissions import ADMIN_ROLE, CONSOLE_ROLE, glob_to_regex
 
 
 @dataclass(frozen=True)
@@ -45,6 +43,7 @@ class BrainConfig:
     clients: tuple[ClientConfig, ...]
     roles: dict[str, RoleConfig] = field(default_factory=dict)
     limits: Limits = field(default_factory=Limits)
+    clients_file: Path | None = None  # server-managed dynamic clients (v1.1)
 
 
 def _require(data: dict, key: str) -> object:
@@ -106,7 +105,7 @@ def load_config(path: str | Path) -> BrainConfig:
             raise ConfigError(f"duplicate client name: {name!r}")
         seen.add(name)
         role = str(_require(c, "role"))
-        if role not in roles:
+        if role not in roles and role != CONSOLE_ROLE:
             raise ConfigError(f"client {name!r} references unknown role {role!r}")
         clients.append(
             ClientConfig(name=name, token_hash_env=str(_require(c, "token_hash_env")), role=role)
@@ -129,6 +128,13 @@ def load_config(path: str | Path) -> BrainConfig:
     if limits.requests_per_minute <= 0 or limits.max_note_bytes <= 0:
         raise ConfigError("limits must be positive")
 
+    clients_file = data.get("clients_file")
+
     return BrainConfig(
-        vault_root=vault_root, audit_dir=audit_dir, clients=tuple(clients), roles=roles, limits=limits
+        vault_root=vault_root,
+        audit_dir=audit_dir,
+        clients=tuple(clients),
+        roles=roles,
+        limits=limits,
+        clients_file=Path(str(clients_file)) if clients_file else None,
     )

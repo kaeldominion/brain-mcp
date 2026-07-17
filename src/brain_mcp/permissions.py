@@ -11,6 +11,11 @@ from typing import Iterable, Pattern
 
 from brain_mcp.errors import PermissionDenied
 
+ADMIN_ROLE = "admin"
+# Built-in system role for the web console: admin-equivalent vault access,
+# exempt from the exactly-one-admin rule (which governs agents).
+CONSOLE_ROLE = "console"
+
 _SEGMENT_CHAR = r"[^/]"
 
 
@@ -79,6 +84,8 @@ class PermissionEngine:
         return False
 
     def allowed(self, client: str, role: str, action: str, rel_path: str) -> bool:
+        if role == CONSOLE_ROLE:
+            role = ADMIN_ROLE
         r = self._roles.get(role)
         if r is None:
             return False

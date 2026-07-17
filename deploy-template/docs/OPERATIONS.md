@@ -14,6 +14,7 @@ Run `./brain` with no arguments for the interactive admin console — every oper
 | `./brain rotate <name>` | Rotate one agent's token | `scripts/rotate-token.sh` |
 | `./brain revoke <name>` | Remove an agent | `scripts/revoke-agent.sh` |
 | `./brain backup` | Configure offsite backup (guided) | writes `.env`, restarts sidecar |
+| `./brain console` | Enable/disable the web console | overlay + console token |
 | `./brain status` | Stack + vault dashboard | `scripts/healthcheck.sh` |
 | `./brain verify` | Acceptance suite vs live stack | `scripts/verify.sh` |
 | `./brain update` | Pull latest release + restart + verify | `scripts/update.sh` |

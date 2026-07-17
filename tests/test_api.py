@@ -160,6 +160,22 @@ class TestStatsAndReview:
         assert r.json()["error"] == "NOT_FOUND"
 
 
+class TestVaultBrowsing:
+    def test_list_root(self, api):
+        r = get(api, "/api/list", CONSOLE_TOKEN, params={"path": "/"})
+        assert r.status_code == 200
+        names = [e["name"] for e in r.json()["entries"]]
+        assert "10 Companies" in names and "_System" in names
+
+    def test_list_requires_auth(self, api):
+        assert get(api, "/api/list", params={"path": "/"}).status_code == 401
+
+    def test_search(self, api):
+        r = get(api, "/api/search", CONSOLE_TOKEN, params={"q": "Acme"})
+        assert r.status_code == 200
+        assert any(hit["path"] == "10 Companies/Acme.md" for hit in r.json()["results"])
+
+
 class TestClients:
     def test_list_clients(self, api):
         r = get(api, "/api/clients", CONSOLE_TOKEN)

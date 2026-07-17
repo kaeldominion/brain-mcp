@@ -1,0 +1,31 @@
+# Overlay: the web console (enable with CONSOLE_ENABLED=true in .env, or
+# ./brain console). Served at console.<COMPANY_DOMAIN>. Access = session
+# login with a console/admin token; the console never touches the vault
+# filesystem — everything goes through brain-mcp's API. Never expose it
+# without reading docs/SECURITY.md (IP allowlist / Tailscale recommended).
+services:
+  console:
+    image: ghcr.io/kaeldominion/brain-console:0.2.1   # pinned like everything else
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks: [proxy]
+    environment:
+      BRAIN_API_URL: http://brain-mcp:8000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 256M}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-brain-proxy}
+      - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.rule=Host(`console.${COMPANY_DOMAIN:?}`)
+      - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.${DEPLOY_PREFIX:-brain}-console.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.${DEPLOY_PREFIX:-brain}-console.loadbalancer.server.port=3000

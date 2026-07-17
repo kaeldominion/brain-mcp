@@ -32,6 +32,14 @@ Headless: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh`.
 
 Prints **one copyable block** — MCP URL + bearer token (shown once) + the `company-brain` skill text from `skills/company-brain.md`. Pasting that block into the agent's deployment config is the entire integration. Same flow for agents on the same VPS or across the world; there is no local/remote distinction (same-VPS HTTPS loops locally — ms-level overhead vs seconds of model latency).
 
+## The web console (optional)
+
+```bash
+./brain console        # enable → prints the login token once
+```
+
+Browser control room at `https://console.<domain>`: dashboard (note counts, unverified queue, agents, backup state, activity feed), the **review queue** (promote / archive unverified notes and inbox items with one click — the weekly ritual becomes a 10-minute session), agent management (add/rotate/revoke, token shown once), read-only vault browser with search, and the filterable audit trail. It talks only to brain-mcp's API — never the vault filesystem. Off by default; read `docs/SECURITY.md` before exposing it.
+
 ## What's here
 
 | Path | Purpose |

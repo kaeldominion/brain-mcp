@@ -48,6 +48,8 @@ Roles out of the box: **admin** (full access, promotes notes to canonical — ex
 
 Day-2 admin: just run **`./brain`** — an interactive console with everything (status, agents, tokens, offsite backup to your own private repo, verify, one-command update). Full details in [`deploy-template/README.md`](deploy-template/README.md) and `deploy-template/docs/`.
 
+**Web console** (optional): `./brain console` enables a browser control room at `console.<domain>` — dashboard, one-click review queue for unverified notes, agent management with instant token issue/rotate/revoke (no restarts, via the dynamic client registry), read-only vault browser, and the audit trail. Ships as its own image (`ghcr.io/kaeldominion/brain-console`), talks only to brain-mcp's API, off by default.
+
 **Multiple brains on one server**: each brain is one folder — copy the template again, run `./brain setup` with a different prefix/domain, and it shares the existing reverse proxy while staying fully isolated (own containers, vault, tokens, backups). See [deploy-template/README.md](deploy-template/README.md#multiple-brains-on-one-server).
 
 ### Personal brains — no server needed

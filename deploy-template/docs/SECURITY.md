@@ -7,6 +7,14 @@
 3. **Vault jail** — absolute paths, `..`, escaping symlinks, dot-files and non-text extensions are rejected regardless of role.
 4. **Audit** — every write, allowed or denied, is an append-only JSONL event in `AUDIT_DIR`, unreachable via MCP tools.
 
+## Web console
+
+The console (`console.<domain>`, optional, off by default) is a new public surface — treat it accordingly:
+
+- It authenticates with a dedicated `console`-role token via session login (httpOnly cookie, 12h). That token has admin-equivalent vault access — guard it like the admin token.
+- The console container never mounts the vault; every action goes through brain-mcp's API, so server-side ACL/audit still applies to everything it does.
+- **Defence-in-depth is on you**: the login is the only gate by default. For anything beyond a trial, add an IP allowlist (bundled mode: Traefik middleware in `traefik/dynamic/security.yml`) or put `console.<domain>` behind Tailscale. Disable when unused: `./brain console`.
+
 ## Token lifecycle
 
 - Create: `./brain add-agent` (or `scripts/add-agent.sh`) — token printed once, only hash stored.

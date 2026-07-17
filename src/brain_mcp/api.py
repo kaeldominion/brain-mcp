@@ -51,6 +51,7 @@ def register_api(
     registry: ClientRegistry,
     service: VaultService,
     limiter: RateLimiter,
+    search_engine=None,
 ) -> None:
     def guard(fn):
         """Authenticate + authorize (admin/console only), map errors to JSON."""
@@ -150,6 +151,22 @@ def register_api(
     async def api_note(request: Request, client: Client):
         path = request.query_params.get("path", "")
         return JSONResponse(service.read_note(client, path))
+
+    @mcp.custom_route("/api/list", methods=["GET"])
+    @guard
+    async def api_list(request: Request, client: Client):
+        path = request.query_params.get("path", "/")
+        return JSONResponse({"entries": service.list_directory(client, path)})
+
+    @mcp.custom_route("/api/search", methods=["GET"])
+    @guard
+    async def api_search(request: Request, client: Client):
+        q = request.query_params.get("q", "").strip()
+        if not q:
+            return JSONResponse({"results": []})
+        folder = request.query_params.get("folder") or None
+        limit = min(int(request.query_params.get("limit", 20)), 100)
+        return JSONResponse({"results": search_engine.search(service.perms, client, q, folder, limit)})
 
     @mcp.custom_route("/api/notes/promote", methods=["POST"])
     @guard

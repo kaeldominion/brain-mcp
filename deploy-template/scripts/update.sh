@@ -22,7 +22,7 @@ NEW_PIN=$(grep -Eo 'brain-mcp:[0-9A-Za-z.-]+' "$SRC/docker-compose.yml" | head -
 echo "==> Refreshing template files (your .env / brain.config.yaml / vault are untouched)"
 for item in brain scripts docs skills traefik docker-compose.yml \
             compose.bundled-traefik.yml compose.external-traefik.yml \
-            .env.example README.md .gitignore; do
+            compose.console.yml .env.example README.md .gitignore; do
   if [[ -e "$SRC/$item" ]]; then
     rm -rf "./${item:?}"
     cp -R "$SRC/$item" "./$item"

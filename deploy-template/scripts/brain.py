@@ -454,6 +454,43 @@ def cmd_update(args):
     run(["scripts/update.sh", *args[:1]])
 
 
+def cmd_console(_):
+    enabled = _env_value("CONSOLE_ENABLED") == "true"
+    domain = _env_value("COMPANY_DOMAIN")
+    if enabled:
+        say(f"Web console is ENABLED at https://console.{domain}", style="green")
+        if confirm("Disable it?"):
+            set_env("CONSOLE_ENABLED", "false")
+            run(["bash", "-c",
+                 "source scripts/lib/compose.sh && docker compose -f docker-compose.yml "
+                 "-f compose.console.yml stop console 2>/dev/null; compose up -d --remove-orphans"])
+            say("console disabled.")
+        return
+
+    panel(
+        "The web console is the browser control room: dashboard, review queue,\n"
+        "agents, vault browser, audit trail — at https://console." + (domain or "<domain>") + "\n\n"
+        "Login uses a dedicated console token (created now, shown once).\n"
+        "It is protected by that login; for defence-in-depth add an IP\n"
+        "allowlist or Tailscale — see docs/SECURITY.md.",
+        title="web console",
+    )
+    if not confirm("Enable the web console?"):
+        return
+    py = str(ROOT / ".venv" / "bin" / "python")
+    if not Path(py).exists():
+        py = sys.executable
+    r = subprocess.run([py, "scripts/lib/config_edit.py", "has-client", "console-web"])
+    if r.returncode != 0:
+        run([py, "scripts/lib/config_edit.py", "add-client", "console-web", "--role", "console"])
+    token = run(["scripts/generate-secrets.sh", "console-web", "--quiet-token-only"],
+                capture=True).stdout.strip()
+    set_env("CONSOLE_ENABLED", "true")
+    compose_cmd("up", "-d")
+    say(f"  ✓ console starting at https://console.{domain} (DNS: point console.{domain} at this server)", style="green")
+    show_block_once("console-web", f"Console login token:\n\n  {token}\n\nUse it on the sign-in screen.")
+
+
 def set_env(key, value):
     env_file = ROOT / ".env"
     lines = env_file.read_text().splitlines() if env_file.exists() else []
@@ -528,6 +565,7 @@ COMMANDS = {
     "verify": cmd_verify,
     "update": cmd_update,
     "backup": cmd_backup,
+    "console": cmd_console,
 }
 
 MENU = [
@@ -535,6 +573,7 @@ MENU = [
     ("add agent — onboard a new agent (URL + token + skill)", cmd_add_agent),
     ("rotate token — new token for an agent", cmd_rotate),
     ("revoke agent — remove an agent", cmd_revoke),
+    ("console — enable/disable the web console", cmd_console),
     ("backup settings — offsite backup to your private repo", cmd_backup),
     ("verify — run the acceptance suite", cmd_verify),
     ("update — pull the latest release + restart + verify", cmd_update),
@@ -574,6 +613,7 @@ def usage():
         "  add-agent   onboard an agent: URL + token + skill block\n"
         "  rotate      rotate an agent's token\n"
         "  revoke      remove an agent\n"
+        "  console     enable/disable the web console\n"
         "  backup      configure offsite backup (your own private repo)\n"
         "  status      stack + vault dashboard\n"
         "  verify      run the acceptance suite\n"

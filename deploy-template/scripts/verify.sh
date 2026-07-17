@@ -30,6 +30,10 @@ else
   check "brain-mcp attached to '$NET'" sh -c "docker network inspect '$NET' -f '{{range .Containers}}{{.Name}} {{end}}' | grep -q brain-mcp"
 fi
 check "audit dir present" sh -c "set -a; . ./.env; set +a; test -d \"\$AUDIT_DIR\""
+if [[ "$(grep -s '^CONSOLE_ENABLED=' .env | cut -d= -f2)" == "true" ]]; then
+  check "console running" sh -c "$(declare -f compose); compose ps console --format '{{.State}}' | grep -q running"
+  check "console healthz" sh -c "$(declare -f compose); compose exec -T console wget -qO- http://127.0.0.1:3000/api/healthz | grep -q true"
+fi
 check "vault+audit writable by server user" sh -c "$(declare -f compose); compose exec -T brain-mcp python -c \"import tempfile,os; [os.unlink(tempfile.mkstemp(dir=d)[1]) for d in ('/vault','/audit')]\""
 
 echo ""

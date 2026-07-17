@@ -118,7 +118,7 @@ def build_server(config_path: str | Path | None = None) -> FastMCP:
 
         return wrapper
 
-    register_api(mcp, config, registry, service, limiter)
+    register_api(mcp, config, registry, service, limiter, search_engine)
 
     @mcp.custom_route("/health", methods=["GET"])
     async def health_route(request):

@@ -54,7 +54,8 @@ def cmd_add_client(args):
     data = load(args.config)
     if has_client(args.config, args.name):
         sys.exit(f"error: client {args.name!r} already exists")
-    if args.role not in data.get("roles", {}):
+    # 'console' is a built-in system role (admin-equivalent, for the web console)
+    if args.role not in data.get("roles", {}) and args.role != "console":
         sys.exit(f"error: unknown role {args.role!r} (defined: {', '.join(data.get('roles', {}))})")
     admins = [c for c in data.get("clients", []) if c.get("role") == "admin"]
     if args.role == "admin" and admins:

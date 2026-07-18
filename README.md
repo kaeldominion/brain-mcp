@@ -52,9 +52,9 @@ Day-2 admin: just run **`./brain`** — an interactive console with everything (
 
 **Multiple brains on one server**: each brain is one folder — copy the template again, run `./brain setup` with a different prefix/domain, and it shares the existing reverse proxy while staying fully isolated (own containers, vault, tokens, backups). See [deploy-template/README.md](deploy-template/README.md#multiple-brains-on-one-server).
 
-### Personal brains — no server needed
+### Personal brains — same product, local mode
 
-One human + one agent doesn't need tokens, locking, or Docker: a personal 2nd Brain is the same vault template as **local files** next to your agent, with the same templates, entity index, and onboarding interview. See [PERSONAL.md](PERSONAL.md) — including the zero-conversion upgrade path to a full server install when a second agent or machine ever needs it. Company plans typically pair one shared server brain with a local personal brain per person.
+A personal 2nd Brain is the identical stack installed on your own machine: `./brain setup` → choose **personal** → MCP endpoint on `127.0.0.1` with no Traefik, domains, or certificates. Your Hermes agent, Claude Code, and Claude Desktop all connect to it over MCP, each with its own token — same vault, roles, audit, console, and backups as a company brain. See [PERSONAL.md](PERSONAL.md), including migrating an existing notes folder. Company plans typically pair one shared server brain with a personal brain per person.
 
 ### Manual / headless install (no TUI)
 

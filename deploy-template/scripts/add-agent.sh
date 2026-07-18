@@ -41,13 +41,19 @@ chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || sudo chown 10001:10001 "$CLIENT
 echo "agent '$NAME' (role: $ROLE) is live — no restart needed" >&2
 
 DOMAIN="$(grep -s '^COMPANY_DOMAIN=' .env | cut -d= -f2)"
+if [[ "$(grep -s '^TRAEFIK_MODE=' .env | cut -d= -f2)" == "local" ]]; then
+  MCP_URL="http://127.0.0.1:$(grep -s '^BRAIN_LOCAL_PORT=' .env | cut -d= -f2 | grep . || echo 8000)/mcp"
+else
+  MCP_URL="https://brain-mcp.${DOMAIN:-<COMPANY_DOMAIN>}/mcp"
+fi
 cat <<EOF
 
 ──── agent onboarding block for '$NAME' — copy everything below ────
 # MCP connection (this token is shown ONCE; only its hash is stored)
+# Claude Code/Desktop instead? claude mcp add --transport http company_brain $MCP_URL --header "Authorization: Bearer <token below>"
 mcp_servers:
   company_brain:
-    url: "https://brain-mcp.${DOMAIN:-<COMPANY_DOMAIN>}/mcp"
+    url: "$MCP_URL"
     headers:
       Authorization: "Bearer $TOKEN"
     timeout: 120

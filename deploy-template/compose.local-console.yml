@@ -1,0 +1,7 @@
+# Overlay: web console in local mode — bound to localhost only.
+services:
+  console:
+    ports:
+      - "127.0.0.1:${CONSOLE_LOCAL_PORT:-3300}:3000"
+    environment:
+      CONSOLE_INSECURE_COOKIE: "1"   # plain http on localhost; secure cookies would be dropped

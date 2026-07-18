@@ -12,6 +12,11 @@ compose() {
   case "$mode" in
     bundled)  docker compose -f docker-compose.yml -f compose.bundled-traefik.yml $extra "$@" ;;
     external) docker compose -f docker-compose.yml -f compose.external-traefik.yml $extra "$@" ;;
-    *) echo "error: TRAEFIK_MODE must be 'bundled' or 'external' (got '$mode')" >&2; return 1 ;;
+    local)
+      if [ -n "$extra" ]; then
+        extra="$extra -f compose.local-console.yml"
+      fi
+      docker compose -f docker-compose.yml -f compose.local.yml $extra "$@" ;;
+    *) echo "error: TRAEFIK_MODE must be 'bundled', 'external' or 'local' (got '$mode')" >&2; return 1 ;;
   esac
 }

@@ -1,0 +1,8 @@
+# Overlay: local mode (TRAEFIK_MODE=local) — a personal brain on your own
+# machine. No Traefik, no domains, no certificates: the MCP endpoint binds to
+# localhost only, and every local MCP client (Hermes, Claude Code, Claude
+# Desktop, anything) connects to http://127.0.0.1:8000/mcp with its own token.
+services:
+  brain-mcp:
+    ports:
+      - "127.0.0.1:${BRAIN_LOCAL_PORT:-8000}:8000"

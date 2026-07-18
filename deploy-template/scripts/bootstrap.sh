@@ -24,7 +24,9 @@ CLIENTS_DIR="${CLIENTS_DIR:-${VAULT_DIR}-clients}"
 chmod 600 .env
 
 TRAEFIK_MODE="${TRAEFIK_MODE:-bundled}"
-if [[ "$TRAEFIK_MODE" == "external" ]]; then
+if [[ "$TRAEFIK_MODE" == "local" ]]; then
+  say "Local mode: personal brain on this machine — MCP on 127.0.0.1:${BRAIN_LOCAL_PORT:-8000}, no reverse proxy"
+elif [[ "$TRAEFIK_MODE" == "external" ]]; then
   say "Traefik mode: external (attaching to network '${TRAEFIK_NETWORK:?TRAEFIK_NETWORK required for external mode}')"
   docker network inspect "$TRAEFIK_NETWORK" >/dev/null 2>&1 \
     || die "Docker network '$TRAEFIK_NETWORK' not found — is the existing Traefik running?"
@@ -42,9 +44,10 @@ BRAIN_IMAGE=$(grep -Eo 'ghcr.io/kaeldominion/brain-mcp:[0-9a-zA-Z.-]+' docker-co
 [[ -n "$BRAIN_IMAGE" ]] || die "could not find pinned brain-mcp image in docker-compose.yml"
 
 say "Seeding vault at $VAULT_DIR from $BRAIN_IMAGE"
-sudo mkdir -p "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
-sudo chmod 700 "$CLIENTS_DIR"
-sudo chown "$(id -u)":"$(id -g)" "$VAULT_DIR" "$AUDIT_DIR"   # writable for seeding; handed to the server user below
+# plain mkdir first (personal installs under \$HOME need no root); sudo fallback for /srv-style paths
+mkdir -p "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR" 2>/dev/null || sudo mkdir -p "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
+chmod 700 "$CLIENTS_DIR" 2>/dev/null || sudo chmod 700 "$CLIENTS_DIR"
+[[ -w "$VAULT_DIR" ]] || sudo chown "$(id -u)":"$(id -g)" "$VAULT_DIR" "$AUDIT_DIR"   # writable for seeding; handed to the server user below
 docker pull -q "$BRAIN_IMAGE" >/dev/null
 cid=$(docker create "$BRAIN_IMAGE")
 tmpdir=$(mktemp -d)
@@ -71,10 +74,14 @@ EOF
     && git -C "$VAULT_DIR" remote add origin "$BACKUP_REMOTE" || true
 fi
 
-say "Handing vault + audit + clients ownership to the server user"
-# the server container runs as non-root UID 10001 (baked into the image);
-# without this, reads work but every write fails with 'Permission denied'
-sudo chown -R 10001:10001 "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
+if [[ "$(uname)" == "Linux" ]]; then
+  say "Handing vault + audit + clients ownership to the server user"
+  # the server container runs as non-root UID 10001 (baked into the image);
+  # without this, reads work but every write fails with 'Permission denied'
+  sudo chown -R 10001:10001 "$VAULT_DIR" "$AUDIT_DIR" "$CLIENTS_DIR"
+else
+  say "macOS/Windows: Docker Desktop maps file ownership automatically — no chown needed"
+fi
 
 say "Tooling venv (.venv: pyyaml, rich, questionary)"
 [[ -d .venv ]] || python3 -m venv .venv

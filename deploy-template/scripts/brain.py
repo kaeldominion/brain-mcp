@@ -261,10 +261,19 @@ def cmd_setup(_):
         sys.exit(1)
     ensure_venv()
 
-    det = detect_traefik()
+    kind = choose(
+        "What are we setting up?",
+        ["company brain — on a server, agents connect over HTTPS",
+         "personal brain — on this machine only, local MCP for your own agents"],
+    )
+    personal = str(kind).startswith("personal")
+
+    det = {"mode": "local"} if personal else detect_traefik()
     mode = det["mode"]
     network = entrypoint = resolver = None
-    if mode == "external":
+    if mode == "local":
+        say("  ✓ personal brain: MCP binds to 127.0.0.1 only — no reverse proxy, no domains, no certificates", style="green")
+    elif mode == "external":
         say(f"  ✓ existing Traefik detected ('{det['name']}') — brain-mcp will attach to it", style="green")
         network = det["network"]
         if network:
@@ -304,10 +313,21 @@ def cmd_setup(_):
     if not env_file.exists():
         (ROOT / ".env.example").exists() or sys.exit("missing .env.example")
         text = (ROOT / ".env.example").read_text()
-        prefix = ask("Deploy prefix (short, e.g. acme)", "brain")
-        domain = ask("Company domain (for brain-mcp.<domain>)", "example.com")
-        email = ask("ACME email for TLS certificates", f"admin@{domain}")
-        vault = ask("Vault directory on this host", f"/srv/{prefix}-2nd-brain")
+        if personal:
+            prefix = ask("Name prefix for your tokens (e.g. your name)", "me")
+            domain = "local"
+            email = "none@local"
+            vault = ask("Data directory for the brain",
+                        str(Path.home() / "2nd-brain-data"))
+            text = text.replace(
+                "BACKUP_SSH_KEY=/srv/backup-key/id_ed25519",
+                "BACKUP_SSH_KEY=./.backup-key/id_ed25519",
+            )
+        else:
+            prefix = ask("Deploy prefix (short, e.g. acme)", "brain")
+            domain = ask("Company domain (for brain-mcp.<domain>)", "example.com")
+            email = ask("ACME email for TLS certificates", f"admin@{domain}")
+            vault = ask("Vault directory on this host", f"/srv/{prefix}-2nd-brain")
         text = (
             text.replace("DEPLOY_PREFIX=brain", f"DEPLOY_PREFIX={prefix}")
             .replace("COMPANY_DOMAIN=example.com", f"COMPANY_DOMAIN={domain}")
@@ -348,17 +368,17 @@ def cmd_setup(_):
     while confirm("Add another agent now? (you can always do this later with ./brain add-agent)"):
         cmd_add_agent([])
 
-    domain = _env_value("COMPANY_DOMAIN")
     grule()
     if RICH:
         console.print(gradient_text("✓  INSTALL COMPLETE", bold=True))
     else:
         print("INSTALL COMPLETE")
     panel(
-        "Endpoint for every agent (local or remote — all external MCP clients):\n"
-        f"  https://brain-mcp.{domain}/mcp\n\n"
+        "Endpoint for every agent (each with its own token):\n"
+        f"  {mcp_url()}\n\n"
         "Onboard agents any time with: ./brain add-agent\n"
-        "Next: connect the admin agent and say hello — it will offer to run the\n"
+        + ("(works for Hermes, Claude Code, Claude Desktop — anything MCP)\n" if is_local_mode() else "")
+        + "Next: connect the admin agent and say hello — it will offer to run the\n"
         "onboarding interview (_System/Onboarding Protocol.md).",
         title="install complete",
         border=TEAL,
@@ -374,19 +394,36 @@ def cmd_rotate_silent(name):
         show_block_once(name, onboarding_block(name, m.group(1)))
 
 
+def is_local_mode():
+    return _env_value("TRAEFIK_MODE") == "local"
+
+
+def mcp_url():
+    if is_local_mode():
+        return f"http://127.0.0.1:{_env_value('BRAIN_LOCAL_PORT') or '8000'}/mcp"
+    return f"https://brain-mcp.{_env_value('COMPANY_DOMAIN')}/mcp"
+
+
 def onboarding_block(name, token):
-    domain = _env_value("COMPANY_DOMAIN")
     skill = (ROOT / "skills" / "company-brain.md").read_text()
     skill_text = skill.split("---", 2)[-1].strip() if "---" in skill else skill.strip()
+    claude_hint = (
+        "\n\n# Claude Code / Claude Desktop (same brain, its own token — run add-agent again for it):\n"
+        f'#   claude mcp add --transport http company_brain {mcp_url()} '
+        f'--header "Authorization: Bearer {token}"'
+        if is_local_mode()
+        else ""
+    )
     return (
         "# MCP connection (this token is shown ONCE; only its hash is stored)\n"
         "mcp_servers:\n"
         "  company_brain:\n"
-        f'    url: "https://brain-mcp.{domain}/mcp"\n'
+        f'    url: "{mcp_url()}"\n'
         "    headers:\n"
         f'      Authorization: "Bearer {token}"\n'
         "    timeout: 120\n"
-        "    connect_timeout: 30\n\n"
+        "    connect_timeout: 30"
+        f"{claude_hint}\n\n"
         f"{skill_text}"
     )
 
@@ -463,9 +500,14 @@ def cmd_console(_):
     enabled = _env_value("CONSOLE_ENABLED") == "true"
     domain = _env_value("COMPANY_DOMAIN")
     sub = _env_value("CONSOLE_SUBDOMAIN") or "2ndbrain"
-    host = f"{sub}.{domain}"
+    if is_local_mode():
+        host = f"127.0.0.1:{_env_value('CONSOLE_LOCAL_PORT') or '3300'}"
+        console_url = f"http://{host}"
+    else:
+        host = f"{sub}.{domain}"
+        console_url = f"https://{host}"
     if enabled:
-        say(f"Web console is ENABLED at https://{host}", style="green")
+        say(f"Web console is ENABLED at {console_url}", style="green")
         if confirm("Disable it?"):
             set_env("CONSOLE_ENABLED", "false")
             run(["bash", "-c",
@@ -476,7 +518,7 @@ def cmd_console(_):
 
     panel(
         "The web console is the browser control room: dashboard, review queue,\n"
-        f"agents, vault browser, audit trail — at https://{host}\n\n"
+        f"agents, vault browser, audit trail — at {console_url}\n\n"
         "Login uses a dedicated console token (created now, shown once).\n"
         "It is protected by that login; for defence-in-depth add an IP\n"
         "allowlist or Tailscale — see docs/SECURITY.md.",
@@ -503,7 +545,8 @@ def cmd_console(_):
         subprocess.run(["chown", "10001:10001", clients_file], capture_output=True)
     set_env("CONSOLE_ENABLED", "true")
     compose_cmd("up", "-d")
-    say(f"  ✓ console starting at https://{host} (DNS: point {host} at this server)", style="green")
+    hint = "" if is_local_mode() else f" (DNS: point {host} at this server)"
+    say(f"  ✓ console starting at {console_url}{hint}", style="green")
     show_block_once("console-web", f"Console login token:\n\n  {token}\n\nUse it on the sign-in screen.")
 
 

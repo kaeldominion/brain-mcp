@@ -1,40 +1,53 @@
-# Personal 2nd Brain — local, no server
+# Personal 2nd Brain — the same product, on your own machine
 
-The MCP server exists to let **multiple agents share one vault safely** (tokens, permissions, locking, audit). A personal brain — one human, one agent, one machine — has none of those problems, so it needs none of that machinery. Run it as plain local files next to your agent.
+A personal brain is **not a different thing**: it's the same server, vault, permissions, and console, installed in *local mode* — bound to `127.0.0.1`, no reverse proxy, no domains, no certificates. Every MCP client on your machine connects to it with its own token: your Hermes agent, Claude Code, Claude Desktop, anything that speaks MCP.
 
-## Setup (2 minutes)
-
-1. Copy the vault template somewhere your agent can read and write:
+## Setup (needs Docker Desktop, python3, openssl)
 
 ```bash
-git clone --depth 1 https://github.com/kaeldominion/brain-mcp /tmp/brain-mcp
-cp -r /tmp/brain-mcp/vault-template ~/2nd-brain-personal
-rm -rf /tmp/brain-mcp
+git clone https://github.com/kaeldominion/brain-mcp
+cp -r brain-mcp/deploy-template 2nd-brain
+cd 2nd-brain
+./brain setup        # choose "personal brain — on this machine"
 ```
 
-2. Give your agent (Hermes skill / project instruction) this:
+The wizard skips everything server-ish (Traefik, domains, ACME) and gives you:
 
-> You maintain my personal 2nd Brain: an Obsidian vault at `~/2nd-brain-personal`, accessed directly on the filesystem.
-> Read `_System/AI Agent Instructions.md` and follow its content rules — templates for entity notes, wikilink everything, one note per entity via the Entity Index, preserve sources and dates, no secrets in the vault.
-> Search the vault before answering questions about my life/work; read a note before editing it.
-> If the vault is empty or I ask, run the interview in `_System/Onboarding Protocol.md` — one question at a time, creating notes as I answer.
+- MCP endpoint at `http://127.0.0.1:8000/mcp` (localhost only)
+- your admin token, shown once
+- optional web console at `http://127.0.0.1:3300` (`./brain console`)
+- optional offsite backup to a private repo you own (`./brain backup`)
 
-3. Optional backup (recommended) — same pattern as the server, one private repo you own:
+## Connecting your agents
+
+Each client gets its **own** token via `./brain add-agent` (instant, no restarts):
+
+**Hermes** — paste the printed `mcp_servers:` block into its config.
+
+**Claude Code** — one command (printed in the onboarding block too):
 
 ```bash
-cd ~/2nd-brain-personal && git init -b main && git add -A && git commit -m "start"
-git remote add origin git@github.com:YOU/personal-brain-backup.git && git push -u origin main
-# then commit+push periodically (cron, launchd, or ask your agent to do it after big updates)
+claude mcp add --transport http company_brain http://127.0.0.1:8000/mcp \
+  --header "Authorization: Bearer <token>"
 ```
 
-Open the folder in Obsidian any time — it's your data, in markdown, on your disk.
+**Claude Desktop** — add the same URL + Authorization header as a remote MCP server in its connector settings.
 
-## When to upgrade to the server
+Roles apply exactly as on a company brain — you'll probably run everything as one or two clients, but nothing stops you giving a scratch agent contributor-only access.
 
-The moment any of these become true, lift the same vault into a full install (`./brain setup`, then move your files into the vault directory — they're identical formats, nothing to convert):
+## Migrating an existing personal vault
 
-- a second agent or a second machine needs the same brain
-- your agent runs on a VPS but you want the vault backed up/managed properly
-- you want per-client permissions, audit history, or hash-guarded concurrent writes
+Your notes are just Markdown: drop them into the data directory you chose during setup (default `~/2nd-brain-data`), keep or adapt the folder taxonomy, and ask your agent to sweep them into shape (Entity Index, wikilinks, frontmatter) — or run the onboarding interview and let ingestion do the heavy lifting.
 
-Company brains should **always** be the server — never share one local folder between people or agents.
+## Personal vs company — the only real differences
+
+| | Personal (local mode) | Company (server) |
+| --- | --- | --- |
+| Where | your machine, `127.0.0.1` only | a VPS behind Traefik + HTTPS |
+| Who connects | your own agents/tools | any agent anywhere, per-token |
+| Setup asks | data directory | domain, DNS, certificates |
+| Everything else | **identical** — vault, roles, audit, console, backups, `./brain` | identical |
+
+Upgrade path: it's the same files and the same config — move the vault to a server install and switch mode whenever a personal brain needs to become reachable from elsewhere.
+
+*(If you truly want zero infrastructure — one agent, direct file access, no MCP — the vault template still works as plain local files with the same conventions. But you lose multi-client access, locking, and audit; local mode is the recommended personal setup.)*

@@ -21,10 +21,13 @@ echo "— host checks (traefik mode: $MODE) —"
 check "compose config valid" compose config -q
 check "brain-mcp running" sh -c "$(declare -f compose); compose ps brain-mcp --format '{{.State}}' | grep -q running"
 check "brain-mcp healthy" sh -c "$(declare -f compose); compose ps brain-mcp --format '{{.Health}}' | grep -q healthy"
-check "mcp port NOT published on host" sh -c "$(declare -f compose); ! compose ps brain-mcp --format '{{.Publishers}}' | grep -Eq '0\.0\.0\.0|\[::\]'"
-if [[ "$MODE" == "bundled" ]]; then
+if [[ "$MODE" == "local" ]]; then
+  check "mcp bound to localhost only" sh -c "$(declare -f compose); p=\$(compose ps brain-mcp --format '{{.Publishers}}'); echo \"\$p\" | grep -q '127.0.0.1' && ! echo \"\$p\" | grep -Eq '0\.0\.0\.0|\[::\]'"
+elif [[ "$MODE" == "bundled" ]]; then
+  check "mcp port NOT published on host" sh -c "$(declare -f compose); ! compose ps brain-mcp --format '{{.Publishers}}' | grep -Eq '0\.0\.0\.0|\[::\]'"
   check "bundled traefik publishes 80/443" sh -c "$(declare -f compose); compose ps traefik --format '{{.Publishers}}' | grep -q ':80'"
 else
+  check "mcp port NOT published on host" sh -c "$(declare -f compose); ! compose ps brain-mcp --format '{{.Publishers}}' | grep -Eq '0\.0\.0\.0|\[::\]'"
   NET="$(grep -s '^TRAEFIK_NETWORK=' .env | cut -d= -f2)"
   check "external traefik network exists" docker network inspect "$NET"
   check "brain-mcp attached to '$NET'" sh -c "docker network inspect '$NET' -f '{{range .Containers}}{{.Name}} {{end}}' | grep -q brain-mcp"

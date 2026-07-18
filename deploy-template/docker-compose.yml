@@ -10,7 +10,7 @@
 
 services:
   brain-mcp:
-    image: ghcr.io/kaeldominion/brain-mcp:0.5.0   # upgrades: bump tag, compose pull && up -d
+    image: ghcr.io/kaeldominion/brain-mcp:0.5.1   # upgrades: bump tag, compose pull && up -d
     restart: unless-stopped
     expose:
       - "8000"                                    # expose, never ports: only reachable via Traefik

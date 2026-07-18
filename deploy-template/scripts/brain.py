@@ -261,18 +261,23 @@ def cmd_setup(_):
         sys.exit(1)
     ensure_venv()
 
-    kind = choose(
-        "What are we setting up?",
-        ["company brain — on a server, agents connect over HTTPS",
-         "personal brain — on this machine only, local MCP for your own agents"],
+    exposure = choose(
+        "Where will agents connect from?",
+        ["anywhere — public HTTPS with a domain (server install)",
+         "my private network — Tailscale tailnet only, no public surface",
+         "only this machine — localhost"],
     )
-    personal = str(kind).startswith("personal")
+    exposure = str(exposure).split(" ")[0]  # anywhere | my | only
+    tailnet_wanted = exposure == "my"
+    personal = exposure != "anywhere"  # machine-local defaults (paths, no domains)
 
     det = {"mode": "local"} if personal else detect_traefik()
     mode = det["mode"]
     network = entrypoint = resolver = None
     if mode == "local":
-        say("  ✓ personal brain: MCP binds to 127.0.0.1 only — no reverse proxy, no domains, no certificates", style="green")
+        say("  ✓ MCP binds to 127.0.0.1 — no reverse proxy, no domains, no certificates", style="green")
+        if tailnet_wanted:
+            say("    Tailscale will front it for your other devices (set up after install).", style="dim")
     elif mode == "external":
         say(f"  ✓ existing Traefik detected ('{det['name']}') — brain-mcp will attach to it", style="green")
         network = det["network"]
@@ -314,7 +319,7 @@ def cmd_setup(_):
         (ROOT / ".env.example").exists() or sys.exit("missing .env.example")
         text = (ROOT / ".env.example").read_text()
         if personal:
-            prefix = ask("Name prefix for your tokens (e.g. your name)", "me")
+            prefix = ask("Token prefix (short — your name or the brain's)", "brain")
             domain = "local"
             email = "none@local"
             vault = ask("Data directory for the brain",
@@ -347,10 +352,28 @@ def cmd_setup(_):
         env_file.chmod(0o600)
         say("  ✓ .env written (fill in BACKUP_REMOTE / BACKUP_SSH_KEY before relying on backups)")
 
+    if tailnet_wanted:
+        host = detect_tailnet_host()
+        if host:
+            set_env_pending = host
+            say(f"  ✓ Tailscale detected — this machine is '{host}' on your tailnet", style="green")
+        else:
+            set_env_pending = None
+            say("  ▲ Tailscale not detected. Install it (tailscale.com/download), join your tailnet,", style="yellow")
+            say("    then re-run ./brain setup or add TAILNET_HOST=<your-magicdns-name> to .env.", style="yellow")
+    else:
+        set_env_pending = None
+
     grule()
     say("Running bootstrap (seed vault, backup repo, secrets, start, verify)…")
     run(["scripts/bootstrap.sh"])
     grule()
+
+    if tailnet_wanted and set_env_pending:
+        set_env("TAILNET_HOST", set_env_pending)
+        say(f"To publish the brain to your tailnet (TLS included), run once:", style="bold")
+        say(f"  tailscale serve --bg https / http://127.0.0.1:{_env_value('BRAIN_LOCAL_PORT') or '8000'}")
+        say(f"Agents then connect at https://{set_env_pending}/mcp from any tailnet device.\n")
 
     if not backup_configured():
         say("Offsite backup protects the brain if this server dies — strongly recommended.")
@@ -399,9 +422,26 @@ def is_local_mode():
 
 
 def mcp_url():
+    tailnet = _env_value("TAILNET_HOST")
+    if tailnet:
+        return f"https://{tailnet}/mcp"
     if is_local_mode():
         return f"http://127.0.0.1:{_env_value('BRAIN_LOCAL_PORT') or '8000'}/mcp"
     return f"https://brain-mcp.{_env_value('COMPANY_DOMAIN')}/mcp"
+
+
+def detect_tailnet_host():
+    """MagicDNS name of this machine, if Tailscale is installed and up."""
+    import json
+
+    r = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    try:
+        name = json.loads(r.stdout).get("Self", {}).get("DNSName", "")
+        return name.rstrip(".") or None
+    except ValueError:
+        return None
 
 
 def onboarding_block(name, token):

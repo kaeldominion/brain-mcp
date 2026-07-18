@@ -1,53 +1,56 @@
-# Personal 2nd Brain — the same product, on your own machine
+# Running a 2nd Brain for yourself
 
-A personal brain is **not a different thing**: it's the same server, vault, permissions, and console, installed in *local mode* — bound to `127.0.0.1`, no reverse proxy, no domains, no certificates. Every MCP client on your machine connects to it with its own token: your Hermes agent, Claude Code, Claude Desktop, anything that speaks MCP.
+There is one product. A "personal" brain is not a different edition — it's the same server, vault, roles, audit, console and backups, deployed for a scope of **everything you run** instead of one organization. Two independent choices define any install:
 
-## Setup (needs Docker Desktop, python3, openssl)
+## Choice 1 — exposure (the only thing setup asks)
+
+| Where agents connect from | What you get |
+| --- | --- |
+| **Anywhere** | Public HTTPS behind Traefik on a server — for agents on other machines and always-on access |
+| **My private network** | Localhost bind + Tailscale in front: reachable from all *your* devices with TLS, invisible to the public internet |
+| **Only this machine** | Localhost only — a laptop-contained brain |
+
+Pick by topology, not by whose brain it is. If your agents are Docker containers, Claude runs on another machine, or you want it always-on — a personal brain deserves a server install ("anywhere" or tailnet on a VPS) exactly like a company's.
+
+## Choice 2 — scope (the onboarding interview asks, not the installer)
+
+Phase 1 of the interview asks what should live in the brain:
+
+- **One business** — even solo. A one-person company's brain is the *business's* brain with a headcount of one; when a team arrives you add agents with roles — same brain, no migration.
+- **Everything you run** — the owner-centric brain: your ventures, personal brand, properties, the lot, each as first-class entities. The joins *between* your ventures are the value — and only your own brain may contain them.
+
+The graduation rule that keeps this clean: **the moment a venture needs other people's agents sharing memory, it gets its own brain** — yours keeps your private view of it, plus links.
+
+## Connecting your agents (every mode)
+
+Each client gets its own token via `./brain add-agent` (instant, no restarts). The onboarding block prints the right URL for your mode, plus a ready-made Claude command:
 
 ```bash
-git clone https://github.com/kaeldominion/brain-mcp
-cp -r brain-mcp/deploy-template 2nd-brain
-cd 2nd-brain
-./brain setup        # choose "personal brain — on this machine"
-```
-
-The wizard skips everything server-ish (Traefik, domains, ACME) and gives you:
-
-- MCP endpoint at `http://127.0.0.1:8000/mcp` (localhost only)
-- your admin token, shown once
-- optional web console at `http://127.0.0.1:3300` (`./brain console`)
-- optional offsite backup to a private repo you own (`./brain backup`)
-
-## Connecting your agents
-
-Each client gets its **own** token via `./brain add-agent` (instant, no restarts):
-
-**Hermes** — paste the printed `mcp_servers:` block into its config.
-
-**Claude Code** — one command (printed in the onboarding block too):
-
-```bash
-claude mcp add --transport http company_brain http://127.0.0.1:8000/mcp \
+claude mcp add --transport http company_brain <your-brain-url>/mcp \
   --header "Authorization: Bearer <token>"
 ```
 
-**Claude Desktop** — add the same URL + Authorization header as a remote MCP server in its connector settings.
+Claude Desktop takes the same URL + header as a remote MCP connector.
 
-Roles apply exactly as on a company brain — you'll probably run everything as one or two clients, but nothing stops you giving a scratch agent contributor-only access.
+**Agent in a Docker container on the same machine** (e.g. a dockerized Hermes): don't route through localhost or the public URL — attach it to the brain's network and use the internal address:
+
+```bash
+docker network connect brain-proxy <your-agent-container>
+# then inside the agent:  http://brain-mcp:8000/mcp
+```
+
+(`brain-proxy` is the default network name — see `TRAEFIK_NETWORK` in `.env`.)
+
+## Tailnet exposure in practice
+
+Choose "my private network" in setup: it detects Tailscale, records your machine's MagicDNS name, and prints the one command:
+
+```bash
+tailscale serve --bg https / http://127.0.0.1:8000
+```
+
+Agents on any of your tailnet devices then use `https://<your-machine>.<tailnet>.ts.net/mcp`. Tokens stay mandatory — the tailnet is an outer wall, never the lock.
 
 ## Migrating an existing personal vault
 
-Your notes are just Markdown: drop them into the data directory you chose during setup (default `~/2nd-brain-data`), keep or adapt the folder taxonomy, and ask your agent to sweep them into shape (Entity Index, wikilinks, frontmatter) — or run the onboarding interview and let ingestion do the heavy lifting.
-
-## Personal vs company — the only real differences
-
-| | Personal (local mode) | Company (server) |
-| --- | --- | --- |
-| Where | your machine, `127.0.0.1` only | a VPS behind Traefik + HTTPS |
-| Who connects | your own agents/tools | any agent anywhere, per-token |
-| Setup asks | data directory | domain, DNS, certificates |
-| Everything else | **identical** — vault, roles, audit, console, backups, `./brain` | identical |
-
-Upgrade path: it's the same files and the same config — move the vault to a server install and switch mode whenever a personal brain needs to become reachable from elsewhere.
-
-*(If you truly want zero infrastructure — one agent, direct file access, no MCP — the vault template still works as plain local files with the same conventions. But you lose multi-client access, locking, and audit; local mode is the recommended personal setup.)*
+Your notes are Markdown: drop them into the data directory (default `~/2nd-brain-data`), then let the onboarding interview + ingestion formalize them — Entity Index, wikilinks, frontmatter. Moving between exposures later is copying the data directory and re-running setup: same files, same config shape.

@@ -21,9 +21,16 @@ Instructions for the admin/management agent on a fresh install: build this brain
 
 Explain to the owner what the brain is, what you will ask, and that everything starts unverified until they confirm it.
 
-## Phase 1 — The business
+## Phase 1 — Scope, then the business
 
-What the company does, entities and legal structure, who owns what, key relationships. Output: Company notes in `10 Companies` + personalize [[Company 2nd Brain Home]]: set its H1 to `<Company Name> — 2nd Brain` and write 2–3 sentences under its `## About` heading (the console shows both as this brain's identity).
+**First, establish the brain's scope** (ask about scope, never about team size):
+
+> "What should live in this brain — **everything you run** (all your ventures, your personal brand, your whole operating world), or **one business**?"
+
+- **One business** — even if it's currently one person. A solo founder's brain is the business's brain with a headcount of one; when a team arrives, they're added as agents with roles — same brain, no migration. Proceed normally below.
+- **Everything you run** — an owner-centric brain. List the ventures; each gets its own note in `10 Companies` and, where substantial, its own subfolders. Name the Home note after the owner (`<Name> — 2nd Brain`). One rule to state to the owner: the moment any single venture needs *other people's* agents sharing memory, that venture graduates to its own brain — this one keeps the owner's private view of it, plus links.
+
+Then the interview: what the company/ventures do, entities and legal structure, who owns what, key relationships. Output: Company notes in `10 Companies` + personalize [[Company 2nd Brain Home]]: set its H1 (`<Company Name> — 2nd Brain` or `<Owner> — 2nd Brain`) and write 2–3 sentences under its `## About` heading (the console shows both as this brain's identity).
 
 ## Phase 2 — Entity sweep
 

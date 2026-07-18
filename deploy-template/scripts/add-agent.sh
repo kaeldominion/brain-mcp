@@ -41,7 +41,10 @@ chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || sudo chown 10001:10001 "$CLIENT
 echo "agent '$NAME' (role: $ROLE) is live — no restart needed" >&2
 
 DOMAIN="$(grep -s '^COMPANY_DOMAIN=' .env | cut -d= -f2)"
-if [[ "$(grep -s '^TRAEFIK_MODE=' .env | cut -d= -f2)" == "local" ]]; then
+TAILNET="$(grep -s '^TAILNET_HOST=' .env | cut -d= -f2)"
+if [[ -n "$TAILNET" ]]; then
+  MCP_URL="https://${TAILNET}/mcp"
+elif [[ "$(grep -s '^TRAEFIK_MODE=' .env | cut -d= -f2)" == "local" ]]; then
   MCP_URL="http://127.0.0.1:$(grep -s '^BRAIN_LOCAL_PORT=' .env | cut -d= -f2 | grep . || echo 8000)/mcp"
 else
   MCP_URL="https://brain-mcp.${DOMAIN:-<COMPANY_DOMAIN>}/mcp"

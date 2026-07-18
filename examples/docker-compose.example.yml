@@ -1,8 +1,8 @@
-# Minimal single-server example. For the full production stack (Traefik,
-# isolated Hermes agents, backup sidecar) use a brain-deploy-<client> repo.
+# Minimal single-server example. For the full production stack (Traefik-aware
+# deploy, web console, backup sidecar, ./brain tooling) use deploy-template/.
 services:
   brain-mcp:
-    image: ghcr.io/kaeldominion/brain-mcp:0.1.0   # pin versions; never :latest
+    image: ghcr.io/kaeldominion/brain-mcp:0.4.1   # pin versions; never :latest
     restart: unless-stopped
     expose:
       - "8000"          # expose (not ports): only reachable on the Docker network
@@ -11,11 +11,12 @@ services:
     volumes:
       - /srv/company-2nd-brain:/vault
       - /srv/company-2nd-brain-audit:/audit
+      - /srv/company-2nd-brain-clients:/clients   # dynamic agent registry (hashes only)
       - ./brain.config.yaml:/config/brain.config.yaml:ro
     environment:
-      MCP_TOKEN_HASH_MANAGEMENT: ${MCP_TOKEN_HASH_MANAGEMENT}
-      MCP_TOKEN_HASH_OPERATIONS: ${MCP_TOKEN_HASH_OPERATIONS}
-      MCP_TOKEN_HASH_STAFF: ${MCP_TOKEN_HASH_STAFF}
+      # sha256 hex hashes of the static (bootstrap) client tokens named in
+      # brain.config.yaml; further agents live in the dynamic registry
+      MCP_TOKEN_HASH_ADMIN: ${MCP_TOKEN_HASH_ADMIN}
     security_opt:
       - no-new-privileges:true
     cap_drop:

@@ -30,7 +30,7 @@ Headless: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh`.
 ./brain add-agent          # or: scripts/add-agent.sh finance --role editor
 ```
 
-Prints **one copyable block** — MCP URL + bearer token (shown once) + the `company-brain` skill text from `skills/company-brain.md`. Pasting that block into the agent's deployment config is the entire integration. Same flow for agents on the same VPS or across the world; there is no local/remote distinction (same-VPS HTTPS loops locally — ms-level overhead vs seconds of model latency).
+Prints **one copyable block** — MCP URL + bearer token (shown once) + the `company-brain` skill text from `skills/company-brain.md`. Pasting that block into the agent's deployment config is the entire integration. Agents are live the moment they're created (dynamic registry — no restarts), and equally manageable from the web console. Same flow for agents on the same VPS or across the world; there is no local/remote distinction (same-VPS HTTPS loops locally — ms-level overhead vs seconds of model latency).
 
 ## The web console (optional)
 
@@ -46,11 +46,12 @@ Browser control room at `https://2ndbrain.<domain>`: dashboard (note counts, unv
 | --- | --- |
 | `docker-compose.yml` | brain-mcp (pinned tag, `expose`d only) + backup sidecar |
 | `compose.bundled-traefik.yml` / `compose.external-traefik.yml` | the two Traefik modes |
+| `compose.console.yml` | the web console overlay (`CONSOLE_ENABLED` / `./brain console`) |
 | `brain.config.yaml` | clients + roles + limits — the only file that varies meaningfully per client |
 | `traefik/dynamic/security.yml` | headers, per-IP rate limit, body cap, TLS floor (bundled mode) |
 | `skills/company-brain.md` | the skill text every agent gets in its onboarding block |
 | `scripts/` | `bootstrap` `add-agent` `generate-secrets` `rotate-token` `revoke-agent` `backup-vault` `restore-vault` `healthcheck` `verify` `update` |
-| `./brain` | interactive admin console (run with no args — arrow-key menu for everything); direct subcommands: setup / add-agent / rotate / revoke / backup / status / verify / update |
+| `./brain` | interactive admin console (run with no args — arrow-key menu for everything); direct subcommands: setup / add-agent / rotate / revoke / console / backup / status / verify / update |
 | `docs/` | OPERATIONS · SECURITY · RECOVERY · ADD-REMOTE-AGENT |
 
 ## Multiple brains on one server

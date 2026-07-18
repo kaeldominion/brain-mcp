@@ -66,19 +66,22 @@ The config is validated at boot; the server refuses to start on any error. Addin
 
 ```bash
 uv sync
-uv run pytest          # 110 tests incl. end-to-end streamable HTTP
+uv run pytest          # 156 tests incl. end-to-end streamable HTTP
 docker build -t brain-mcp .
 ```
 
-Releases: tag `vX.Y.Z` → CI runs tests, builds the image, and pushes `ghcr.io/kaeldominion/brain-mcp:X.Y.Z`. VPSs only ever pull images; they never see source.
+Releases: tag `vX.Y.Z` → CI runs tests and publishes both images: `ghcr.io/kaeldominion/brain-mcp:X.Y.Z` and `ghcr.io/kaeldominion/brain-console:X.Y.Z`. VPSs only ever pull images; they never see source. Installed brains upgrade with `./brain update`.
 
 ## Layout
 
 ```
-src/brain_mcp/    server.py config.py auth.py permissions.py paths.py
-                  locking.py notes.py search.py audit.py ratelimit.py errors.py
-tests/            full acceptance suite (auth, authz, jail, concurrency, HTTP e2e)
-vault-template/   default Obsidian taxonomy + _System (instructions, templates,
-                  Entity Index, Onboarding Protocol)
-examples/         config + compose examples
+src/brain_mcp/    server.py config.py auth.py registry.py api.py permissions.py
+                  paths.py locking.py notes.py search.py audit.py ratelimit.py
+tests/            full acceptance suite (auth, authz, registry, API, jail,
+                  concurrency, HTTP e2e)
+console/          the web console (Next.js) — its own Docker image
+deploy-template/  per-install deploy: compose, Traefik modes, ./brain TUI, docs
+vault-template/   default Obsidian taxonomy + _System (agent instructions, note
+                  templates, Entity Index, Onboarding + Ingestion Protocols)
+examples/         minimal config + compose examples
 ```

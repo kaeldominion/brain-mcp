@@ -14,6 +14,10 @@
 
 vault_root: /vault
 audit_dir: /audit
+# dynamic agents (added via ./brain, the admin API, or the web console) live
+# here — hashes only, hot-reloaded, no restarts; static clients below are for
+# bootstrap/env-managed identities (the admin). Optional but recommended.
+clients_file: /clients/clients.yaml
 
 clients:
   - name: management

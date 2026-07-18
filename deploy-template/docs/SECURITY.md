@@ -17,9 +17,10 @@ The console (`2ndbrain.<domain>`, optional, off by default) is a new public surf
 
 ## Token lifecycle
 
-- Create: `./brain add-agent` (or `scripts/add-agent.sh`) — token printed once, only hash stored.
-- Rotate: `./brain rotate <name>` — other agents unaffected.
-- Revoke: `./brain revoke <name>` — client block removed, server restarted.
+- Create: `./brain add-agent`, the web console, or `scripts/add-agent.sh` — token shown once, only its hash stored, live immediately (dynamic registry, no restart).
+- Rotate: `./brain rotate <name>` or the console — instant for dynamic agents; other agents unaffected.
+- Revoke: `./brain revoke <name>` or the console — the token stops authenticating immediately; the agent's notes and audit history remain.
+- The bootstrap admin (and any pre-registry clients) are env-managed: rotating those goes through `./brain` and restarts the server.
 
 ## Rules
 

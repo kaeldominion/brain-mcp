@@ -11,9 +11,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   if (!request.cookies.get("bt")?.value) {
-    // relative redirect: absolute URLs built from the request can carry the
-    // container bind address (0.0.0.0) when behind a reverse proxy
-    return new NextResponse(null, { status: 307, headers: { Location: "/login" } });
+    // middleware requires an absolute redirect URL (relative Location throws
+    // ERR_INVALID_URL here). nextUrl derives from the Host header, which the
+    // reverse proxy forwards correctly — unlike route handlers, middleware
+    // never sees the container bind address.
+    const login = request.nextUrl.clone();
+    login.pathname = "/login";
+    login.search = "";
+    return NextResponse.redirect(login);
   }
   return NextResponse.next();
 }

@@ -28,11 +28,10 @@ A plain `GET /health` route serves Docker/Traefik health checks.
 On the server (needs Docker + Compose v2, python3, openssl):
 
 ```bash
-git clone https://github.com/kaeldominion/brain-mcp
-cp -r brain-mcp/deploy-template 2nd-brain
-cd 2nd-brain
-./brain setup
+curl -fsSL https://raw.githubusercontent.com/kaeldominion/brain-mcp/main/install.sh | bash
 ```
+
+One command: fetches the deploy kit, stamps it into a `2nd-brain/` folder, and launches the guided setup. Extra brains on the same machine: `… | bash -s -- another-brain`. (Prefer doing it by hand? `git clone` the repo, `cp -r brain-mcp/deploy-template 2nd-brain`, `cd 2nd-brain && ./brain setup` — same thing.)
 
 That's the whole install. The guided wizard runs preflight checks, detects an existing Traefik (Hostinger boxes ship one) or deploys the bundled one, asks for your domain/email, generates hashed agent tokens, seeds the vault (including `_System/` — agent instructions, note templates, entity index, the onboarding interview, and the auto-ingestion protocol), starts the stack, and runs the acceptance suite.
 

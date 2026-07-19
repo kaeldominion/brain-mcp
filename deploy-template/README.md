@@ -9,8 +9,8 @@ Copy this directory into a **private** `brain-deploy-<client>` repo per install;
 ## Quick start
 
 ```bash
-cp -r deploy-template 2nd-brain && cd 2nd-brain
-./brain setup        # preflight → traefik detection → details → tokens → seed → start → verify
+curl -fsSL https://raw.githubusercontent.com/kaeldominion/brain-mcp/main/install.sh | bash
+# → stamps this kit into ./2nd-brain and runs the guided setup
 ```
 
 Headless: `cp .env.example .env`, edit it, then `scripts/bootstrap.sh`.

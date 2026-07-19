@@ -56,11 +56,11 @@ Browser control room at `https://2ndbrain.<domain>`: dashboard (note counts, unv
 
 ## Multiple brains on one server
 
-Each brain is one folder with its own containers, vault, tokens, and backup repo — fully isolated. They share only the reverse proxy (one Traefik owns 80/443; every brain registers its own hostname under its own deploy prefix):
+Each brain is one folder with its own containers, vault, tokens, and backup repo — fully isolated. They share only the reverse proxy (one Traefik owns 80/443; every brain registers its own hostname under its own deploy prefix). The installer's optional argument names the folder:
 
 ```bash
-cp -r ~/brain-mcp/deploy-template ~/2nd-brain-companyx
-cd ~/2nd-brain-companyx && ./brain setup     # different prefix + domain + backup repo
+curl -fsSL https://raw.githubusercontent.com/kaeldominion/brain-mcp/main/install.sh | bash -s -- 2nd-brain-companyx
+# → new folder, new setup: different prefix + domain + backup repo
 ```
 
 Run as many as the box can hold (~100MB RAM each). Manage each from its own folder: `cd <folder> && ./brain`.

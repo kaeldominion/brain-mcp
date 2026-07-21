@@ -257,6 +257,12 @@ class TestClients:
         names = {c["name"] for c in r.json()["clients"]}
         assert {"apiadmin", "panel", "staffer"} <= names
 
+    def test_roles_from_config_excludes_admin(self, api):
+        # returns THIS install's actual roles (the fixture defines operations/staff)
+        roles = get(api, "/api/roles", CONSOLE_TOKEN).json()["roles"]
+        assert "admin" not in roles
+        assert "operations" in roles and "staff" in roles
+
     def test_create_rotate_revoke_lifecycle(self, api):
         r = post(api, "/api/clients", CONSOLE_TOKEN,
                  {"name": "fieldbot", "role": "staff", "deploy_prefix": "acme"})

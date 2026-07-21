@@ -285,6 +285,13 @@ def register_api(
         body = await request.json()
         return JSONResponse(service.archive_note(client, body.get("path", "")))
 
+    @mcp.custom_route("/api/roles", methods=["GET"])
+    @guard
+    async def api_roles(request: Request, client: Client):
+        """The roles actually defined in this install's config — so the console
+        offers real assignable roles (admin excluded: exactly one, env-managed)."""
+        return JSONResponse({"roles": [r for r in config.roles if r != "admin"]})
+
     @mcp.custom_route("/api/clients", methods=["GET"])
     @guard
     async def api_clients_list(request: Request, client: Client):

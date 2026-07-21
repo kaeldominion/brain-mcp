@@ -3,8 +3,7 @@ import { brain } from "@/lib/brain";
 import { AddAgent, AgentRowActions } from "./ui";
 
 export default async function Agents() {
-  const { clients } = await brain("/clients");
-  const roles = ["editor", "contributor"];
+  const [{ clients }, { roles }] = await Promise.all([brain("/clients"), brain("/roles")]);
   return (
     <Shell active="/agents">
       <h1>Agents</h1>

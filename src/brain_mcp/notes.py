@@ -79,6 +79,7 @@ class VaultService:
             {
                 "ts": _utcnow(),
                 "client": client.name,
+                "owner": client.owner,
                 "role": client.role,
                 "tool": tool,
                 "path": path,

@@ -11,15 +11,17 @@ cd "$(dirname "$0")/.."
 PY=".venv/bin/python"; [[ -x "$PY" ]] || PY="python3"
 source scripts/lib/compose.sh
 
-NAME="${1:?usage: add-agent.sh <name> --role <role>}"
+NAME="${1:?usage: add-agent.sh <name> --role <role> [--owner <person>]}"
 shift
 ROLE=""
+OWNER=""
 DEPLOY="$(grep -s '^DEPLOY_PREFIX=' .env | cut -d= -f2)"
 DEPLOY="${DEPLOY:-brain}"
 RESTART=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --role) ROLE="$2"; shift 2 ;;
+    --owner) OWNER="$2"; shift 2 ;;
     --deploy) DEPLOY="$2"; shift 2 ;;
     --no-restart) RESTART=0; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
@@ -33,12 +35,14 @@ set -a; source .env 2>/dev/null; set +a
 CLIENTS_DIR="${CLIENTS_DIR:-${VAULT_DIR:?}-clients}"
 CLIENTS_FILE="$CLIENTS_DIR/clients.yaml"
 
+OWNER_ARGS=()
+[[ -n "$OWNER" ]] && OWNER_ARGS=(--owner "$OWNER")
 TOKEN=$("$PY" scripts/lib/config_edit.py --clients-file "$CLIENTS_FILE" --deploy "$DEPLOY" \
-  add-dynamic "$NAME" --role "$ROLE")
+  add-dynamic "$NAME" --role "$ROLE" "${OWNER_ARGS[@]}")
 
 # the server (uid 10001) must be able to read what we just wrote as root
 chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || sudo chown 10001:10001 "$CLIENTS_FILE" 2>/dev/null || true
-echo "agent '$NAME' (role: $ROLE) is live — no restart needed" >&2
+echo "agent '$NAME'${OWNER:+ ($OWNER)} (role: $ROLE) is live — no restart needed" >&2
 
 DOMAIN="$(grep -s '^COMPANY_DOMAIN=' .env | cut -d= -f2)"
 TAILNET="$(grep -s '^TAILNET_HOST=' .env | cut -d= -f2)"

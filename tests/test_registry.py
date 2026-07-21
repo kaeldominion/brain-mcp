@@ -98,10 +98,24 @@ class TestHotReload:
 
 
 class TestMutations:
+    def test_add_client_with_owner_persists_and_surfaces(self, registry):
+        token = registry.add_client("tia-gm", "operations", deploy_prefix="acme", owner="Tia, GM")
+        client = registry.authenticate(f"Bearer {token}")
+        assert client.name == "tia-gm"
+        assert client.owner == "Tia, GM"
+        info = next(c for c in registry.list_clients() if c.name == "tia-gm")
+        assert info.owner == "Tia, GM"
+
+    def test_rotate_preserves_owner(self, registry):
+        registry.add_client("rot", "staff", owner="Dana")
+        new = registry.rotate_client("rot")
+        assert registry.authenticate(f"Bearer {new}").owner == "Dana"
+
     def test_add_client_returns_token_once_and_authenticates(self, registry):
         token = registry.add_client("finance", "operations", deploy_prefix="acme")
         assert token.startswith("acme_finance_")
         assert registry.authenticate(f"Bearer {token}").name == "finance"
+        assert registry.authenticate(f"Bearer {token}").owner is None
         data = yaml.safe_load(registry.clients_file.read_text())
         entry = next(c for c in data["clients"] if c["name"] == "finance")
         assert entry["token_hash"] == hash_token(token)

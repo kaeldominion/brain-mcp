@@ -14,12 +14,13 @@ export default async function Agents() {
       <AddAgent roles={roles} />
       <table>
         <thead>
-          <tr><th>name</th><th>role</th><th>source</th><th style={{ textAlign: "right" }}>actions</th></tr>
+          <tr><th>name</th><th>assigned to</th><th>role</th><th>source</th><th style={{ textAlign: "right" }}>actions</th></tr>
         </thead>
         <tbody>
           {clients.map((c: any) => (
             <tr key={c.name}>
               <td>{c.name}</td>
+              <td>{c.owner ?? <span className="dim">—</span>}</td>
               <td><span className="badge">{c.role}</span></td>
               <td className="dim">{c.source}</td>
               <td style={{ textAlign: "right" }}>

@@ -37,7 +37,7 @@ export default async function Audit({
             {events.map((e: any, i: number) => (
               <tr key={i} style={e.ok ? undefined : { background: "rgba(248,113,113,.06)" }}>
                 <td className="dim mono">{e.ts}</td>
-                <td>{e.client}</td>
+                <td>{e.client}{e.owner ? <div className="dim" style={{ fontSize: 11 }}>{e.owner}</div> : null}</td>
                 <td className="dim">{e.role}</td>
                 <td className="mono">{e.tool}</td>
                 <td className="mono">{e.path}{e.error ? <div className="dim" style={{ fontSize: 11.5 }}>{e.error}</div> : null}</td>

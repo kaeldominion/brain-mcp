@@ -2,7 +2,7 @@
 # deploy, web console, backup sidecar, ./brain tooling) use deploy-template/.
 services:
   brain-mcp:
-    image: ghcr.io/kaeldominion/brain-mcp:0.5.2   # pin versions; never :latest
+    image: ghcr.io/kaeldominion/brain-mcp:0.6.0   # pin versions; never :latest
     restart: unless-stopped
     expose:
       - "8000"          # expose (not ports): only reachable on the Docker network

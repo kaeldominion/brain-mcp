@@ -41,6 +41,7 @@ class ClientInfo:
     name: str
     role: str
     source: str  # "static" | "dynamic"
+    owner: str | None = None
 
 
 def _slug(name: str) -> str:
@@ -107,7 +108,8 @@ class ClientRegistry:
             if name in seen or name in static_names:
                 raise ConfigError(f"{self.clients_file}: duplicate client name {name!r}")
             seen.add(name)
-            entries.append((h, Client(name=name, role=role)))
+            owner = str(raw.get("owner", "")).strip() or None
+            entries.append((h, Client(name=name, role=role, owner=owner)))
         return entries
 
     def _maybe_reload(self) -> None:
@@ -132,7 +134,13 @@ class ClientRegistry:
     def _write_file(self, entries: list[tuple[str, Client]]) -> None:
         payload = {
             "clients": [
-                {"name": c.name, "role": c.role, "token_hash": h} for h, c in entries
+                {
+                    "name": c.name,
+                    "role": c.role,
+                    **({"owner": c.owner} if c.owner else {}),
+                    "token_hash": h,
+                }
+                for h, c in entries
             ]
         }
         self.clients_file.parent.mkdir(parents=True, exist_ok=True)
@@ -178,7 +186,7 @@ class ClientRegistry:
     def list_clients(self) -> list[ClientInfo]:
         self._maybe_reload()
         out = [ClientInfo(c.name, c.role, "static") for _, c in self._static]
-        out += [ClientInfo(c.name, c.role, "dynamic") for _, c in self._dynamic]
+        out += [ClientInfo(c.name, c.role, "dynamic", c.owner) for _, c in self._dynamic]
         return out
 
     def _admin_names(self) -> list[str]:
@@ -192,7 +200,9 @@ class ClientRegistry:
                 "dynamic clients are not enabled: set clients_file in brain.config.yaml"
             )
 
-    def add_client(self, name: str, role: str, deploy_prefix: str = "brain") -> str:
+    def add_client(
+        self, name: str, role: str, deploy_prefix: str = "brain", owner: str | None = None
+    ) -> str:
         self._require_file()
         name = name.strip()
         with self._lock:
@@ -211,7 +221,8 @@ class ClientRegistry:
                     "exactly one admin is allowed"
                 )
             token = generate_token(_slug(deploy_prefix), _slug(name))
-            entries = [*self._dynamic, (hash_token(token), Client(name=name, role=role))]
+            owner = (owner or "").strip() or None
+            entries = [*self._dynamic, (hash_token(token), Client(name=name, role=role, owner=owner))]
             self._write_file(entries)
             return token
 

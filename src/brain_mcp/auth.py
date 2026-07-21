@@ -25,6 +25,7 @@ _SHA256_HEX = re.compile(r"^[0-9a-f]{64}$")
 class Client:
     name: str
     role: str
+    owner: str | None = None  # the human accountable for this agent (audit readability)
 
 
 def hash_token(token: str) -> str:

@@ -476,7 +476,8 @@ def _env_value(key):
 
 
 def cmd_add_agent(args):
-    name = args[0] if args else ask("Agent name")
+    name = args[0] if args else ask("Agent name (the identity, e.g. tia-gm)")
+    owner = "" if args else (ask("Assigned to (person, optional)", "") or "")
     role = args[1] if len(args) > 1 else choose(
         "Role",
         ["editor — read/write its scoped areas + own inbox",
@@ -487,7 +488,10 @@ def cmd_add_agent(args):
     if role.startswith("custom"):
         say("Add the role under roles: in brain.config.yaml, then re-run ./brain add-agent.", style="yellow")
         return
-    r = run(["scripts/add-agent.sh", name, "--role", role], capture=True)
+    cmd = ["scripts/add-agent.sh", name, "--role", role]
+    if owner:
+        cmd += ["--owner", owner]
+    r = run(cmd, capture=True)
     m = re.search(r"Bearer (\S+)", r.stdout)
     if m:
         show_block_once(name, onboarding_block(name, m.group(1).rstrip('"')))

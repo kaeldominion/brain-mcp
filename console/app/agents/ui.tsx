@@ -22,7 +22,8 @@ export function TokenModal({ name, token, onClose }: { name: string; token: stri
 export function AddAgent({ roles }: { roles: string[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [role, setRole] = useState(roles[0] ?? "contributor");
+  const [owner, setOwner] = useState("");
+  const [role, setRole] = useState(roles[0] ?? "");
   const [reveal, setReveal] = useState<{ name: string; token: string } | null>(null);
   const [error, setError] = useState("");
 
@@ -31,28 +32,41 @@ export function AddAgent({ roles }: { roles: string[] }) {
     const res = await fetch("/api/brain/clients", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, role }),
+      body: JSON.stringify({ name, role, owner }),
     });
     const data = await res.json();
     if (!res.ok) return setError(data.message ?? "failed");
     setReveal({ name, token: data.token });
     setName("");
+    setOwner("");
     router.refresh();
   }
 
   if (reveal) return <TokenModal {...reveal} onClose={() => setReveal(null)} />;
 
   return (
-    <div className="row" style={{ margin: "14px 0" }}>
-      <input placeholder="agent name (e.g. finance)" value={name} onChange={(e) => setName(e.target.value)} />
-      <select value={role} onChange={(e) => setRole(e.target.value)}>
-        {roles.map((r) => (
-          <option key={r} value={r}>{r}</option>
-        ))}
-      </select>
-      <button className="btn btn-primary" onClick={add} disabled={!name.trim()}>
-        Add agent
-      </button>
+    <div style={{ margin: "14px 0" }}>
+      <div className="row" style={{ alignItems: "flex-end" }}>
+        <label style={{ display: "block" }}>
+          <span className="dim" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>agent name</span>
+          <input placeholder="e.g. tia-gm" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label style={{ display: "block" }}>
+          <span className="dim" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>assigned to (person)</span>
+          <input placeholder="e.g. Tia, General Manager" value={owner} onChange={(e) => setOwner(e.target.value)} />
+        </label>
+        <label style={{ display: "block" }}>
+          <span className="dim" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>role</span>
+          <select value={role} onChange={(e) => setRole(e.target.value)}>
+            {roles.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        <button className="btn btn-primary" onClick={add} disabled={!name.trim() || !role}>
+          Add agent
+        </button>
+      </div>
       {error && <span style={{ color: "var(--red)", fontSize: 13 }}>{error}</span>}
     </div>
   );

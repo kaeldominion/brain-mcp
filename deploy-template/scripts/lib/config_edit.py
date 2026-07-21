@@ -166,7 +166,11 @@ def cmd_add_dynamic(args):
         sys.exit("error: the admin client is env-managed; exactly one admin is allowed")
     token = _new_token(args.deploy, args.name)
     entries = _load_dynamic(args.clients_file)
-    entries.append({"name": args.name, "role": args.role, "token_hash": _sha256(token)})
+    entry = {"name": args.name, "role": args.role}
+    if getattr(args, "owner", None):
+        entry["owner"] = args.owner
+    entry["token_hash"] = _sha256(token)
+    entries.append(entry)
     _write_dynamic(args.clients_file, entries)
     print(token)
 
@@ -229,6 +233,7 @@ def main():
     p = sub.add_parser("add-dynamic")
     p.add_argument("name")
     p.add_argument("--role", required=True)
+    p.add_argument("--owner", default=None)
     p.set_defaults(fn=cmd_add_dynamic)
 
     args = parser.parse_args()

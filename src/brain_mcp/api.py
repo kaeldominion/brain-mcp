@@ -298,7 +298,7 @@ def register_api(
         return JSONResponse(
             {
                 "clients": [
-                    {"name": c.name, "role": c.role, "source": c.source}
+                    {"name": c.name, "role": c.role, "source": c.source, "owner": c.owner}
                     for c in registry.list_clients()
                 ]
             }
@@ -312,6 +312,7 @@ def register_api(
             str(body.get("name", "")),
             str(body.get("role", "")),
             deploy_prefix=str(body.get("deploy_prefix", "brain")),
+            owner=str(body.get("owner", "")) or None,
         )
         return JSONResponse({"name": body.get("name"), "role": body.get("role"), "token": token})
 

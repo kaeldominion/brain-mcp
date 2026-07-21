@@ -39,6 +39,24 @@ fi
 
 if [[ -f .env ]]; then
   source scripts/lib/compose.sh
+  set -a; . ./.env; set +a
+
+  # config migration: pre-registry installs lack clients_file, so the console /
+  # API can't manage agents. Add it (and its host dir) — the only edit update
+  # ever makes to brain.config.yaml, and only when the key is absent.
+  if [[ -f brain.config.yaml ]] && ! grep -q '^clients_file:' brain.config.yaml; then
+    echo "==> Enabling the dynamic client registry (adding clients_file)"
+    CLIENTS_DIR="${CLIENTS_DIR:-${VAULT_DIR}-clients}"
+    mkdir -p "$CLIENTS_DIR" 2>/dev/null || sudo mkdir -p "$CLIENTS_DIR"
+    [[ "$(uname)" == "Linux" ]] && { chown -R 10001:10001 "$CLIENTS_DIR" 2>/dev/null || sudo chown -R 10001:10001 "$CLIENTS_DIR"; }
+    if grep -q '^audit_dir:' brain.config.yaml; then
+      sed -i.bak '/^audit_dir:/a\
+clients_file: /clients/clients.yaml' brain.config.yaml && rm -f brain.config.yaml.bak
+    else
+      printf '\nclients_file: /clients/clients.yaml\n' >> brain.config.yaml
+    fi
+  fi
+
   echo "==> Pulling image + restarting"
   compose pull -q
   compose up -d

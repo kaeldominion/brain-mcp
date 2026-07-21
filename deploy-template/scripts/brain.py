@@ -475,18 +475,56 @@ def _env_value(key):
     return ""
 
 
-def cmd_add_agent(args):
-    name = args[0] if args else ask("Agent name (the identity, e.g. tia-gm)")
-    owner = "" if args else (ask("Assigned to (person, optional)", "") or "")
-    role = args[1] if len(args) > 1 else choose(
-        "Role",
-        ["editor — read/write its scoped areas + own inbox",
-         "contributor — read approved areas, write own inbox only",
-         "custom (define it in brain.config.yaml first)"],
+def available_roles():
+    """Roles actually defined in brain.config.yaml (admin excluded)."""
+    py = str(ROOT / ".venv" / "bin" / "python")
+    if not Path(py).exists():
+        py = sys.executable
+    try:
+        import yaml  # noqa
+    except Exception:
+        py = str(ROOT / ".venv" / "bin" / "python")
+    out = subprocess.run(
+        [py, "-c",
+         "import yaml,sys; d=yaml.safe_load(open('brain.config.yaml')); "
+         "print('\\n'.join(r for r in d.get('roles',{}) if r!='admin'))"],
+        capture_output=True, text=True,
     )
-    role = role.split(" ")[0]
+    return [r for r in out.stdout.split() if r]
+
+
+def cmd_add_agent(args):
+    # accept both flag style (add-agent NAME --role R --owner P) and bare
+    # positional (add-agent NAME ROLE); no args → interactive prompts
+    name = role = None
+    owner = ""
+    positional = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--role" and i + 1 < len(args):
+            role = args[i + 1]; i += 2
+        elif a == "--owner" and i + 1 < len(args):
+            owner = args[i + 1]; i += 2
+        else:
+            positional.append(a); i += 1
+    if positional:
+        name = positional[0]
+        if role is None and len(positional) > 1:
+            role = positional[1]
+
+    roles = available_roles()
+    if name is None:
+        name = ask("Agent name (the identity, e.g. tia-gm)")
+        owner = ask("Assigned to (person, optional)", "") or ""
+    if role is None:
+        role = choose("Role", roles + ["custom (define it in brain.config.yaml first)"])
+        role = role.split(" ")[0]
     if role.startswith("custom"):
         say("Add the role under roles: in brain.config.yaml, then re-run ./brain add-agent.", style="yellow")
+        return
+    if roles and role not in roles and role != "console":
+        say(f"error: unknown role '{role}'. Available: {', '.join(roles)}", style="red")
         return
     cmd = ["scripts/add-agent.sh", name, "--role", role]
     if owner:
@@ -552,7 +590,11 @@ def cmd_console(_):
         console_url = f"https://{host}"
     if enabled:
         say(f"Web console is ENABLED at {console_url}", style="green")
-        if confirm("Disable it?"):
+        action = choose("What do you want to do?",
+                        ["reissue login token", "disable the console", "nothing"])
+        if action.startswith("reissue"):
+            _issue_console_token()
+        elif action.startswith("disable"):
             set_env("CONSOLE_ENABLED", "false")
             run(["bash", "-c",
                  "source scripts/lib/compose.sh && docker compose -f docker-compose.yml "
@@ -570,6 +612,16 @@ def cmd_console(_):
     )
     if not confirm("Enable the web console?"):
         return
+    _issue_console_token()
+    set_env("CONSOLE_ENABLED", "true")
+    compose_cmd("up", "-d")
+    hint = "" if is_local_mode() else f" (DNS: point {host} at this server)"
+    say(f"  ✓ console starting at {console_url}{hint}", style="green")
+
+
+def _issue_console_token():
+    """Create or rotate the console-web login client, then reveal the token once.
+    Robust to a console-web that was never created (mints it) or already exists."""
     py = str(ROOT / ".venv" / "bin" / "python")
     if not Path(py).exists():
         py = sys.executable
@@ -586,11 +638,8 @@ def cmd_console(_):
         token = run([py, cfg, "--clients-file", clients_file,
                      "--deploy", _env_value("DEPLOY_PREFIX") or "brain",
                      "add-dynamic", "console-web", "--role", "console"], capture=True).stdout.strip()
-        subprocess.run(["chown", "10001:10001", clients_file], capture_output=True)
-    set_env("CONSOLE_ENABLED", "true")
-    compose_cmd("up", "-d")
-    hint = "" if is_local_mode() else f" (DNS: point {host} at this server)"
-    say(f"  ✓ console starting at {console_url}{hint}", style="green")
+        subprocess.run(["chown", "10001:10001", clients_file], capture_output=True) \
+            or subprocess.run(["sudo", "chown", "10001:10001", clients_file], capture_output=True)
     show_block_once("console-web", f"Console login token:\n\n  {token}\n\nUse it on the sign-in screen.")
 
 
